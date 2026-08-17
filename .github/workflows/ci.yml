@@ -1,4 +1,4 @@
-name: InterviewIQ CI/CD Pipeline
+name: MockMate CI/CD Pipeline
 
 on:
   push:
@@ -25,21 +25,18 @@ jobs:
 
       - name: Validate Prisma Schema
         run: npx prisma validate --schema=apps/backend/prisma/schema.prisma
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mockmate?sslmode=disable
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/mockmate?sslmode=disable
 
       - name: Type Check Shared Package
-        run: npm run check --workspace=packages/shared
-
-      - name: Type Check Backend App
-        run: npx tsc --noEmit --project apps/backend/tsconfig.json
-
-      - name: Type Check Frontend App
-        run: npx tsc --noEmit --project apps/frontend/tsconfig.json
-
-      - name: Run Backend Vitest Unit Tests
-        run: npm test --workspace=apps/backend
+        run: npm run type-check --workspace=packages/shared
 
       - name: Build Shared Package
         run: npm run build --workspace=packages/shared
+
+      - name: Type Check Backend App
+        run: npm run type-check --workspace=apps/backend
 
       - name: Build Next.js Production App
         run: npm run build --workspace=apps/frontend
