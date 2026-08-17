@@ -1,0 +1,532 @@
+// ============================================================
+// schema.prisma — InterviewIQ Database Schema
+//
+// Design decisions:
+// - cuid() for all primary keys (URL-safe, collision-resistant)
+// - Prices stored in CENTS (integer) — never use floats for money
+// - Soft deletes via deletedAt on User and Booking
+// - Cascade rules are explicit and intentional
+// - Indexes on all FKs and common query columns
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────
+
+enum UserRole {
+  CANDIDATE
+  INTERVIEWER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+  STAFF
+  PRINCIPAL
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED_BY_CANDIDATE
+  CANCELLED_BY_INTERVIEWER
+  COMPLETED
+  NO_SHOW
+}
+
+enum InterviewType {
+  TECHNICAL_CODING
+  SYSTEM_DESIGN
+  BEHAVIORAL
+  RESUME_REVIEW
+  MOCK_FULL
+}
+
+enum InterviewStatus {
+  WAITING
+  ACTIVE
+  ENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum OverallRating {
+  STRONG_HIRE
+  HIRE
+  BORDERLINE
+  NO_HIRE
+  STRONG_NO_HIRE
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  INTERVIEW_STARTING
+  FEEDBACK_AVAILABLE
+  REVIEW_RECEIVED
+  PAYMENT_RECEIVED
+}
+
+// ─── User ─────────────────────────────────────────────────────
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String
+  emailVerified Boolean    @default(false)
+  image         String?
+  avatar        String?
+  role          UserRole   @default(CANDIDATE)
+  status        UserStatus @default(ACTIVE)
+  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  interviewerProfile InterviewerProfile?
+  bookingsAsCandidate Booking[]           @relation("CandidateBookings")
+  notifications       Notification[]
+  resumes             Resume[]
+
+  // Better Auth managed tables
+  sessions Session[]
+  accounts Account[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// ─── Better Auth Tables ───────────────────────────────────────
+// These are required by Better Auth — do not modify structure
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// ─── Interviewer Profile ─────────────────────────────────────
+// One-to-one with User (only INTERVIEWER role users have this)
+
+model InterviewerProfile {
+  id                String          @id @default(cuid())
+  userId            String          @unique
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline          String          @db.VarChar(160)
+  bio               String          @db.Text
+  company           String?
+  jobTitle          String?
+  yearsOfExperience Int             @default(0)
+  experienceLevel   ExperienceLevel @default(MID)
+
+  // Pricing stored in cents — avoids floating point issues
+  pricePerHour Int @default(0)
+
+  linkedinUrl String?
+  githubUrl   String?
+
+  // Verification by admin
+  isVerified     Boolean @default(false)
+  verifiedAt     DateTime?
+
+  // Stripe Connect — for receiving payouts
+  stripeAccountId      String?
+  stripeAccountEnabled Boolean @default(false)
+
+  // Denormalized stats (updated via triggers/events — avoids N+1 on listing page)
+  averageRating    Float @default(0)
+  totalReviews     Int   @default(0)
+  totalInterviews  Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bookings          Booking[]
+  availabilitySlots AvailabilitySlot[]
+  blockedSlots      BlockedSlot[]
+  feedbacks         Feedback[]
+  reviews           Review[]
+  tags              InterviewerTag[]
+
+  @@index([isVerified])
+  @@index([pricePerHour])
+  @@index([averageRating])
+  @@map("interviewer_profiles")
+}
+
+// ─── Tags (Skills / Technologies) ────────────────────────────
+// Normalized — interviewers link to tags via join table
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  interviewers InterviewerTag[]
+
+  @@map("tags")
+}
+
+model InterviewerTag {
+  interviewerProfileId String
+  tagId                String
+
+  interviewerProfile InterviewerProfile @relation(fields: [interviewerProfileId], references: [id], onDelete: Cascade)
+  tag                Tag                @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([interviewerProfileId, tagId])
+  @@map("interviewer_tags")
+}
+
+// ─── Availability Slots ───────────────────────────────────────
+// Weekly recurring availability — not calendar-specific dates
+
+model AvailabilitySlot {
+  id                   String             @id @default(cuid())
+  interviewerProfileId String
+  interviewerProfile   InterviewerProfile @relation(fields: [interviewerProfileId], references: [id], onDelete: Cascade)
+
+  dayOfWeek DayOfWeek
+  startTime String // "HH:MM" 24-hour format in UTC
+  endTime   String // "HH:MM" 24-hour format in UTC
+  isActive  Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([interviewerProfileId])
+  @@index([dayOfWeek])
+  @@map("availability_slots")
+}
+
+// ─── Blocked Slots / Session Blackout ──────────────────────────
+// Specific date/time ranges blocked out by interviewer (vacation, personal time, custom blackout)
+
+model BlockedSlot {
+  id                   String             @id @default(cuid())
+  interviewerProfileId String
+  interviewerProfile   InterviewerProfile @relation(fields: [interviewerProfileId], references: [id], onDelete: Cascade)
+
+  startDateTime DateTime
+  endDateTime   DateTime
+  reason        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([interviewerProfileId])
+  @@index([startDateTime, endDateTime])
+  @@map("blocked_slots")
+}
+
+// ─── Booking ─────────────────────────────────────────────────
+// The core transaction entity
+
+model Booking {
+  id                   String        @id @default(cuid())
+  candidateId          String
+  candidate            User          @relation("CandidateBookings", fields: [candidateId], references: [id])
+  interviewerProfileId String
+  interviewerProfile   InterviewerProfile @relation(fields: [interviewerProfileId], references: [id])
+
+  scheduledAt     DateTime
+  durationMinutes Int          @default(60)
+  interviewType   InterviewType
+  status          BookingStatus @default(PENDING)
+
+  // All amounts in cents
+  totalAmountCents         Int
+  platformFeeCents         Int
+  interviewerPayoutCents   Int
+
+  notes     String?   @db.Text
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations (all cascade on booking delete)
+  payment   Payment?
+  interview Interview?
+  feedback  Feedback?
+  review    Review?
+
+  @@index([candidateId])
+  @@index([interviewerProfileId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("bookings")
+}
+
+// ─── Payment ─────────────────────────────────────────────────
+
+model Payment {
+  id        String @id @default(cuid())
+  bookingId String @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  stripePaymentIntentId String  @unique
+  stripeChargeId        String?
+
+  amountCents Int
+  currency    String        @default("inr")
+  status      PaymentStatus @default(PENDING)
+
+  refundedAmountCents Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stripePaymentIntentId])
+  @@map("payments")
+}
+
+// ─── Interview (Room) ─────────────────────────────────────────
+
+model Interview {
+  id        String @id @default(cuid())
+  bookingId String @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  status    InterviewStatus @default(WAITING)
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  // LiveKit room name
+  roomName String @unique @default(cuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  messages      Message[]
+  codeSnapshot  CodeSnapshot?
+
+  @@index([roomName])
+  @@map("interviews")
+}
+
+// ─── Chat Messages ────────────────────────────────────────────
+
+model Message {
+  id          String    @id @default(cuid())
+  interviewId String
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  senderId   String
+  senderName String
+  content    String @db.Text
+
+  sentAt DateTime @default(now())
+
+  @@index([interviewId])
+  @@index([sentAt])
+  @@map("messages")
+}
+
+// ─── Code Snapshot ────────────────────────────────────────────
+// Periodic saves of the collaborative editor content
+
+model CodeSnapshot {
+  id          String    @id @default(cuid())
+  interviewId String    @unique
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  content  String @db.Text
+  language String @default("javascript")
+
+  updatedAt DateTime @updatedAt
+
+  @@map("code_snapshots")
+}
+
+// ─── Feedback ─────────────────────────────────────────────────
+
+model Feedback {
+  id        String  @id @default(cuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  interviewerProfileId String
+  interviewerProfile   InterviewerProfile @relation(fields: [interviewerProfileId], references: [id])
+
+  candidateId String
+
+  // Interviewer writes raw notes
+  rawNotes      String @db.Text
+  overallRating OverallRating
+
+  // AI-generated polish
+  professionalSummary      String?   @db.Text
+  strengths                String[]
+  weaknesses               String[]
+  learningRecommendations  String[]
+
+  isAiGenerated         Boolean   @default(false)
+  isSharedWithCandidate Boolean   @default(false)
+  sharedAt              DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([candidateId])
+  @@index([interviewerProfileId])
+  @@map("feedbacks")
+}
+
+// ─── Review ───────────────────────────────────────────────────
+// Public review left by candidate after interview
+
+model Review {
+  id        String  @id @default(cuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  candidateId          String
+  interviewerProfileId String
+  interviewerProfile   InterviewerProfile @relation(fields: [interviewerProfileId], references: [id])
+
+  rating  Int    // 1-5
+  comment String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([interviewerProfileId])
+  @@index([candidateId])
+  @@map("reviews")
+}
+
+// ─── Notification ─────────────────────────────────────────────
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String           @db.Text
+  isRead  Boolean          @default(false)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ─── Resume ───────────────────────────────────────────────────
+
+model Resume {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fileName           String
+  cloudinaryUrl      String
+  cloudinaryPublicId String @unique
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  analysis ResumeAnalysis?
+
+  @@index([userId])
+  @@map("resumes")
+}
+
+// ─── Resume Analysis (AI) ─────────────────────────────────────
+
+model ResumeAnalysis {
+  id       String @id @default(cuid())
+  resumeId String @unique
+  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  extractedSkills      String[]
+  improvements         String[]
+  predictedQuestions   String[]
+  overallScore         Int // 0-100
+
+  createdAt DateTime @default(now())
+
+  @@map("resume_analyses")
+}
