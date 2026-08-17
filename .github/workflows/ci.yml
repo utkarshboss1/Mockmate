@@ -1,0 +1,48 @@
+name: InterviewIQ CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Validate Prisma Schema
+        run: npx prisma validate --schema=apps/backend/prisma/schema.prisma
+
+      - name: Type Check Shared Package
+        run: npm run check --workspace=packages/shared
+
+      - name: Type Check Backend App
+        run: npx tsc --noEmit --project apps/backend/tsconfig.json
+
+      - name: Type Check Frontend App
+        run: npx tsc --noEmit --project apps/frontend/tsconfig.json
+
+      - name: Run Backend Vitest Unit Tests
+        run: npm test --workspace=apps/backend
+
+      - name: Build Shared Package
+        run: npm run build --workspace=packages/shared
+
+      - name: Build Next.js Production App
+        run: npm run build --workspace=apps/frontend
+        env:
+          NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
+          NEXT_PUBLIC_LIVEKIT_URL: wss://demo.livekit.cloud
