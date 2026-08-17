@@ -58,7 +58,7 @@ export class FeedbackRepository {
       };
     }
 
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       // 1. Create or update Feedback record
       const feedback = await tx.feedback.upsert({
         where: { bookingId: input.bookingId },
@@ -110,7 +110,7 @@ export class FeedbackRepository {
       };
     }
 
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       // 1. Create Review record
       const review = await tx.review.create({
         data: {

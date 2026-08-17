@@ -80,7 +80,7 @@ export class AdminRepository {
     }
 
     const { search, page, limit } = input;
-    const where: Prisma.UserWhereInput = {};
+    const where: any = {};
 
     if (search && search.trim()) {
       const query = search.trim();

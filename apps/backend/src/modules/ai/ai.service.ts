@@ -54,8 +54,8 @@ Respond STRICTLY in raw JSON format (without markdown codeblock syntax) matching
       : [];
 
     const pastFeedbacksSummary = pastBookings
-      .filter((b) => b.feedback)
-      .map((b) => `Session (${b.interviewType}): ${b.feedback?.rawNotes}`)
+      .filter((b: any) => b.feedback)
+      .map((b: any) => `Session (${b.interviewType}): ${b.feedback?.rawNotes}`)
       .join('\n');
 
     const prompt = `You are a Senior Tech Career & Interview Preparation Advisor.

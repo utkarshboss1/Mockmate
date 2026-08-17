@@ -53,7 +53,7 @@ export class AvailabilityRepository {
     if (!isDbConnected()) {
       return SAMPLE_SLOTS as any;
     }
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       await tx.availabilitySlot.deleteMany({
         where: { interviewerProfileId },
       });

@@ -74,7 +74,7 @@ export class BookingRepository {
     const requestedStart = new Date(input.scheduledAt);
     const requestedEnd = new Date(requestedStart.getTime() + 60 * 60 * 1000);
 
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       // 1. Check for overlapping non-cancelled bookings
       const activeBookings = await tx.booking.findMany({
         where: {
@@ -85,7 +85,7 @@ export class BookingRepository {
         },
       });
 
-      const hasConflict = activeBookings.some((b) => {
+      const hasConflict = activeBookings.some((b: any) => {
         const bStart = new Date(b.scheduledAt).getTime();
         const bEnd = bStart + (b.durationMinutes || 60) * 60 * 1000;
         return requestedStart.getTime() < bEnd && requestedEnd.getTime() > bStart;
@@ -127,7 +127,7 @@ export class BookingRepository {
     }
 
     const { status, page, limit } = query;
-    const where: Prisma.BookingWhereInput = { candidateId };
+    const where: any = { candidateId };
     if (status) where.status = status;
 
     const skip = (page - 1) * limit;
@@ -165,7 +165,7 @@ export class BookingRepository {
     }
 
     const { status, page, limit } = query;
-    const where: Prisma.BookingWhereInput = { interviewerProfileId };
+    const where: any = { interviewerProfileId };
     if (status) where.status = status;
 
     const skip = (page - 1) * limit;

@@ -82,7 +82,7 @@ export class AvailabilityService {
     ]);
 
     const bookedTimeStamps = new Set(
-      existingBookings.map((b) => b.scheduledAt.getTime()),
+      existingBookings.map((b: any) => b.scheduledAt.getTime()),
     );
 
     const bookableDatesMap: Record<string, string[]> = {};
@@ -111,7 +111,7 @@ export class AvailabilityService {
           const slotEndTime = timestamp + 60 * 60 * 1000;
 
           // Check if slot falls within any blocked range
-          const isBlocked = blockedSlots.some((blk) => {
+          const isBlocked = blockedSlots.some((blk: any) => {
             const blkStart = new Date(blk.startDateTime).getTime();
             const blkEnd = new Date(blk.endDateTime).getTime();
             return timestamp < blkEnd && slotEndTime > blkStart;

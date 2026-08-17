@@ -29,6 +29,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mockmate?sslmode=disable
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/mockmate?sslmode=disable
 
+      - name: Generate Prisma Client
+        run: npx prisma generate --schema=apps/backend/prisma/schema.prisma
+
       - name: Type Check Shared Package
         run: npm run type-check --workspace=packages/shared
 

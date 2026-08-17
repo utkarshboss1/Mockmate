@@ -35,7 +35,7 @@ export class ReviewsRepository {
       } as any;
     }
 
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       // 1. Create Review
       const review = await tx.review.create({
         data: {

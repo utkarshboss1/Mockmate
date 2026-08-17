@@ -70,7 +70,7 @@ export class UsersRepository {
   async updateInterviewerProfile(userId: string, input: UpdateInterviewerProfileInput) {
     const pricePerHourPaise = Math.round(input.pricePerHourRupees * 100);
 
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: any) => {
       // 1. Upsert InterviewerProfile
       const profile = await tx.interviewerProfile.upsert({
         where: { userId },

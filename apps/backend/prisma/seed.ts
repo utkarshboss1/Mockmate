@@ -1,4 +1,5 @@
-import { PrismaClient, UserRole, ExperienceLevel } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { UserRole, ExperienceLevel } from '@interviewiq/shared';
 
 const prisma = new PrismaClient();
 

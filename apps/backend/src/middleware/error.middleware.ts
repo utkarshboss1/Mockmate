@@ -67,8 +67,9 @@ export function errorMiddleware(
   }
 
   // Prisma unique constraint violations
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === 'P2002') {
+  if (err && typeof err === 'object' && 'code' in err) {
+    const prismaErr = err as any;
+    if (prismaErr.code === 'P2002') {
       res.status(409).json({
         success: false,
         error: {
@@ -79,7 +80,7 @@ export function errorMiddleware(
       return;
     }
 
-    if (err.code === 'P2025') {
+    if (prismaErr.code === 'P2025') {
       res.status(404).json({
         success: false,
         error: {

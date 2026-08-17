@@ -85,7 +85,7 @@ export class MarketplaceRepository {
     }
 
     try {
-      const where: Prisma.InterviewerProfileWhereInput = {};
+      const where: any = {};
 
       if (search && search.trim()) {
         const query = search.trim();
@@ -123,7 +123,7 @@ export class MarketplaceRepository {
         };
       }
 
-      let orderBy: Prisma.InterviewerProfileOrderByWithRelationInput = { averageRating: 'desc' };
+      let orderBy: any = { averageRating: 'desc' };
 
       switch (sort) {
         case 'price_asc':
