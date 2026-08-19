@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InterviewType } from '@interviewiq/shared';
+import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, getInitials } from '@/lib/utils';
 import { Loader2, AlertCircle, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -29,6 +30,7 @@ interface BookingFormProps {
 
 export function BookingForm({ interviewer }: BookingFormProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
   const [interviewType, setInterviewType] = useState<InterviewType>(InterviewType.TECHNICAL_CODING);
   const [notes, setNotes] = useState('');
@@ -55,16 +57,49 @@ export function BookingForm({ interviewer }: BookingFormProps) {
 
       const booking = response.data.data;
 
-      // Initiate Stripe Checkout session
-      const checkoutRes = await api.post('/payments/create-checkout-session', {
-        bookingId: booking.id,
-      });
+      // Initiate Razorpay / Instant Payment Checkout
+      try {
+        const orderRes = await api.post('/payments/create-razorpay-order', {
+          bookingId: booking.id,
+        });
 
-      if (checkoutRes.data.data.checkoutUrl) {
-        window.location.href = checkoutRes.data.data.checkoutUrl;
-      } else {
-        router.push(`/dashboard?bookingCreated=${booking.id}`);
+        const { orderId, amount, currency, keyId } = orderRes.data.data;
+
+        if (typeof window !== 'undefined' && (window as any).Razorpay && keyId && keyId !== 'rzp_test_mock_key') {
+          const options = {
+            key: keyId,
+            amount: amount,
+            currency: currency || 'INR',
+            name: 'MockMate',
+            description: `1-on-1 ${interviewType} Mock Interview`,
+            order_id: orderId,
+            handler: async function (response: any) {
+              await api.post('/payments/verify-razorpay-payment', {
+                bookingId: booking.id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              router.push(`/dashboard?payment=success&bookingId=${booking.id}`);
+            },
+            prefill: {
+              name: user?.name,
+              email: user?.email,
+            },
+            theme: {
+              color: '#3B82F6',
+            },
+          };
+
+          const rzp = new (window as any).Razorpay(options);
+          rzp.open();
+          return;
+        }
+      } catch (e) {
+        console.warn('Razorpay checkout initialization notice:', e);
       }
+
+      router.push(`/dashboard?bookingCreated=${booking.id}`);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

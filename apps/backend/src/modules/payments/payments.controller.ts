@@ -17,6 +17,24 @@ export class PaymentsController {
     }
   }
 
+  async createRazorpayOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await paymentsService.createRazorpayOrder(req.user!.id, req.body.bookingId);
+      res.json(successResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async verifyRazorpayPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await paymentsService.verifyRazorpayPayment(req.user!.id, req.body);
+      res.json(successResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const status = await paymentsService.getPaymentStatus(req.params.bookingId);

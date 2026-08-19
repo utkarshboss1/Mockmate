@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { Plus_Jakarta_Sans, Outfit, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import './globals.css';
@@ -70,6 +71,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -81,6 +83,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       </body>
     </html>
   );

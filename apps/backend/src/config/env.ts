@@ -38,6 +38,11 @@ const envSchema = z.object({
   // Groq AI
   GROQ_API_KEY: z.string().default('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'),
 
+  // Razorpay
+  RAZORPAY_KEY_ID: z.string().default('rzp_test_mock_key'),
+  RAZORPAY_KEY_SECRET: z.string().default('mock_secret'),
+  RAZORPAY_WEBHOOK_SECRET: z.string().default('mock_webhook_secret'),
+
   // Auth Controls
   ALLOW_MOCK_AUTH: z.string().default('true').transform((val) => val === 'true'),
 });

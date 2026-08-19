@@ -18,6 +18,18 @@ router.post(
   (req, res, next) => paymentsController.createCheckoutSession(req, res, next),
 );
 
+router.post(
+  '/create-razorpay-order',
+  requireAuth,
+  (req, res, next) => paymentsController.createRazorpayOrder(req, res, next),
+);
+
+router.post(
+  '/verify-razorpay-payment',
+  requireAuth,
+  (req, res, next) => paymentsController.verifyRazorpayPayment(req, res, next),
+);
+
 router.get('/booking/:bookingId', requireAuth, (req, res, next) =>
   paymentsController.getStatus(req, res, next),
 );
