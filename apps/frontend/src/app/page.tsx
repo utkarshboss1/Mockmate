@@ -1,25 +1,14 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { NavHeader } from '@/components/NavHeader';
 import { formatCurrency } from '@/lib/utils';
 import {
+  ArrowRight,
+  ArrowDown,
+  Star,
   Video,
   Code2,
   BrainCircuit,
-  ArrowRight,
-  Star,
-  Users,
-  CheckCircle2,
-  Award,
-  Calendar,
-  Clock,
-  IndianRupee,
-  Briefcase,
   ChevronRight,
-  User,
-  Shield,
 } from 'lucide-react';
 
 export const metadata = {
@@ -33,375 +22,339 @@ export default function HomePage() {
     {
       id: 'int_1',
       name: 'Sarah Chen',
-      headline: 'Senior Software Engineer @ Google | Ex-Amazon',
+      headline: 'Senior Software Engineer @ Google',
       company: 'Google',
-      jobTitle: 'Senior Software Engineer',
       yearsOfExperience: 8,
-      pricePerHourPaise: 120000, // ₹1,200
+      pricePerHourPaise: 120000,
       rating: 4.9,
       totalReviews: 48,
       tags: ['System Design', 'Algorithms', 'Distributed Systems'],
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
     },
     {
       id: 'int_2',
       name: 'Alex Rivera',
-      headline: 'Staff Engineer @ Meta | System Design Lead',
+      headline: 'Staff Engineer @ Meta',
       company: 'Meta',
-      jobTitle: 'Staff Software Engineer',
       yearsOfExperience: 10,
-      pricePerHourPaise: 150000, // ₹1,500
+      pricePerHourPaise: 150000,
       rating: 5.0,
       totalReviews: 62,
       tags: ['System Design', 'Scalability', 'Backend Architecture'],
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
     },
     {
       id: 'int_3',
       name: 'Priya Sharma',
-      headline: 'Senior UI Architect @ Microsoft | React Specialist',
+      headline: 'Senior UI Architect @ Microsoft',
       company: 'Microsoft',
-      jobTitle: 'Senior UI Architect',
       yearsOfExperience: 7,
-      pricePerHourPaise: 100000, // ₹1,000
+      pricePerHourPaise: 100000,
       rating: 4.8,
       totalReviews: 35,
       tags: ['Frontend Architecture', 'JavaScript', 'Web Performance'],
-      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
-      {/* Navigation Header */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <NavHeader />
 
-      {/* ─── Soothing Hero Section ────────────────────────────────── */}
-      <section className="relative py-16 md:py-28 overflow-hidden border-b border-border/40 bg-card/20">
-        <div className="container max-w-5xl text-center space-y-7 relative z-10 px-4">
-          <Badge
-            variant="outline"
-            className="px-3.5 py-1 text-xs font-medium rounded-full border-border/60 bg-secondary/50 text-muted-foreground inline-flex items-center gap-2"
+      {/* ═══════════════════════════════════════════════════════════
+          HERO — Full-viewport, bold editorial typography
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-[90vh] flex flex-col justify-center px-6 md:px-16 lg:px-24">
+        {/* Uppercase label */}
+        <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-8">
+          Mock Interview Platform · India
+        </p>
+
+        {/* Massive heading */}
+        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-extrabold leading-[0.95] tracking-[-0.03em] max-w-5xl font-heading">
+          Practice interviews{' '}
+          <br className="hidden md:block" />
+          with{' '}
+          <span className="text-primary italic">real engineers.</span>
+        </h1>
+
+        {/* Subdued body */}
+        <p className="text-sm md:text-base text-muted-foreground max-w-md mt-10 leading-relaxed">
+          Book 1-on-1 sessions with senior engineers from
+          Google, Meta, Amazon and Microsoft. Live coding,
+          system design, and actionable scorecards.
+        </p>
+
+        {/* Scroll indicator — bottom right */}
+        <div className="absolute bottom-10 right-8 md:right-16 flex items-center gap-2 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground">
+          <span>Scroll</span>
+          <ArrowDown className="h-3.5 w-3.5" />
+        </div>
+
+        {/* Subtle CTAs */}
+        <div className="flex items-center gap-6 mt-12">
+          <Link
+            href="/marketplace"
+            className="group flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
           >
-            <Shield className="h-3.5 w-3.5 text-primary" />
-            <span>1-on-1 Peer & Expert Mock Interviews</span>
-          </Badge>
-
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.15] max-w-4xl mx-auto font-heading">
-            Practice Technical Interviews with{' '}
-            <span className="text-foreground border-b-2 border-primary/60 pb-1">Real FAANG Engineers</span>
-          </h1>
-
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Connect 1-on-1 with verified senior engineers for live coding, system design, and behavioral practice with actionable scorecards.
-          </p>
-
-          {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link href="/marketplace" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto font-semibold gap-2 text-xs h-12 px-7 rounded-xl shadow-md">
-                Find an Interviewer <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/register?role=interviewer" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto font-medium text-xs h-12 px-7 rounded-xl border-border/60 bg-card/40">
-                <Briefcase className="h-4 w-4 text-primary mr-1.5" /> Join as an Interviewer (Earn in ₹)
-              </Button>
-            </Link>
-          </div>
-
-          {/* Clean Real Workspace Preview Mockup */}
-          <div className="pt-8 max-w-4xl mx-auto">
-            <div className="rounded-2xl border border-border/60 bg-card shadow-xl overflow-hidden p-1.5">
-              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 rounded-t-xl border-b border-border/40 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-600 inline-block" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-600 inline-block" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-600 inline-block" />
-                  <span className="font-mono text-muted-foreground ml-2">MockMate Live Workspace — 60-min Practice Session</span>
-                </div>
-                <Badge variant="outline" className="text-[10px] bg-secondary/80 border-border/60 text-muted-foreground font-mono">
-                  Live WebRTC Session
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 bg-[#11161F] rounded-b-xl min-h-[240px] text-left">
-                {/* Code Editor Preview */}
-                <div className="md:col-span-8 p-4 rounded-xl bg-[#161B22] border border-white/5 font-mono text-xs text-slate-300 space-y-2">
-                  <div className="text-slate-500">// Problem: Lowest Common Ancestor of a Binary Search Tree</div>
-                  <div><span className="text-blue-400">def</span> <span className="text-emerald-400">lowestCommonAncestor</span>(root: TreeNode, p: TreeNode, q: TreeNode) -&gt; TreeNode:</div>
-                  <div className="pl-4 text-slate-400">curr = root</div>
-                  <div className="pl-4 text-slate-400"><span className="text-blue-400">while</span> curr:</div>
-                  <div className="pl-8 text-slate-400"><span className="text-blue-400">if</span> p.val &gt; curr.val <span className="text-blue-400">and</span> q.val &gt; curr.val:</div>
-                  <div className="pl-12 text-slate-400">curr = curr.right</div>
-                  <div className="pl-8 text-slate-400"><span className="text-blue-400">elif</span> p.val &lt; curr.val <span className="text-blue-400">and</span> q.val &lt; curr.val:</div>
-                  <div className="pl-12 text-slate-400">curr = curr.left</div>
-                  <div className="pl-8 text-slate-400"><span className="text-blue-400">else</span>: <span className="text-blue-400">return</span> curr</div>
-                </div>
-
-                {/* Video & Scorecard Panel Preview */}
-                <div className="md:col-span-4 flex flex-col gap-2.5">
-                  <div className="flex-1 rounded-xl bg-[#161B22] border border-white/5 p-3 flex flex-col items-center justify-center text-center space-y-1">
-                    <div className="w-10 h-10 rounded-full bg-secondary border border-border flex items-center justify-center text-foreground font-bold">
-                      <User className="h-5 w-5 text-primary" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">Google Senior Engineer</span>
-                    <span className="text-[10px] text-muted-foreground">Active Mic & Video</span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-card border border-border/50 text-xs space-y-1">
-                    <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Session Scorecard
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                      Strong algorithmic efficiency. Great explanation of space complexity constraints.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Social Proof Metric Cards */}
-          <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm text-center">
-              <div className="text-2xl font-bold text-foreground">500+</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Verified Interviewers</div>
-            </div>
-            <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm text-center">
-              <div className="text-2xl font-bold text-foreground">10,000+</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Sessions Conducted</div>
-            </div>
-            <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm text-center">
-              <div className="text-2xl font-bold text-emerald-400">4.9 / 5.0</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Average Candidate Rating</div>
-            </div>
-            <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm text-center">
-              <div className="text-2xl font-bold text-primary">₹ 500+</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Starting Rate per Hour</div>
-            </div>
-          </div>
+            Find an Interviewer
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+          <Link
+            href="/register?role=interviewer"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Join as Interviewer
+          </Link>
         </div>
       </section>
 
-      {/* ─── Tech Stack Categories ───────────────────────────────── */}
-      <section className="py-10 border-b border-border/40 bg-card/10">
-        <div className="container max-w-5xl text-center space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Filter Practice Sessions by Topic & Role
+      {/* ═══════════════════════════════════════════════════════════
+          STATS BAR — Minimal horizontal strip
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="border-y border-white/[0.04] py-10 px-6 md:px-16 lg:px-24">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { value: '500+', label: 'Verified Interviewers' },
+            { value: '10,000+', label: 'Sessions Conducted' },
+            { value: '4.9 / 5', label: 'Average Rating' },
+            { value: '₹500+', label: 'Starting Rate / hr' },
+          ].map((stat) => (
+            <div key={stat.label}>
+              <div className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+                {stat.value}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1 tracking-wide uppercase">
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          HOW IT WORKS — Numbered steps with dividers
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="py-24 md:py-32 px-6 md:px-16 lg:px-24">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
+            How it works
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight max-w-2xl leading-[1.1] mb-16">
+            From booking to{' '}
+            <span className="text-primary">feedback</span> in four steps.
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0">
             {[
-              'Data Structures & Algorithms',
-              'System Design & Architecture',
-              'Frontend (React, TypeScript)',
-              'Backend & Microservices',
-              'AI & ML Engineering',
-              'Behavioral & Leadership',
-              'SQL & Database Optimization',
-            ].map((skill) => (
-              <Badge
-                key={skill}
-                variant="outline"
-                className="px-3.5 py-1.5 text-xs font-medium rounded-lg border-border/60 bg-card hover:border-primary/40 transition-colors cursor-pointer"
+              {
+                num: '01',
+                title: 'Select an Engineer',
+                desc: 'Browse by company, expertise, experience level, and hourly rate.',
+              },
+              {
+                num: '02',
+                title: 'Pick a Time Slot',
+                desc: 'Reserve a 60-minute window directly on their live calendar.',
+              },
+              {
+                num: '03',
+                title: 'Live 1-on-1 Session',
+                desc: 'Join the video room with a shared Monaco code editor workspace.',
+              },
+              {
+                num: '04',
+                title: 'Get Your Scorecard',
+                desc: 'Receive structured rubrics and personalized improvement notes.',
+              },
+            ].map((step) => (
+              <div
+                key={step.num}
+                className="border-t border-white/[0.06] pt-6 pb-8 lg:pr-10"
               >
-                {skill}
-              </Badge>
+                <div className="text-[11px] font-mono font-medium text-primary tracking-wider mb-4">
+                  {step.num}
+                </div>
+                <h3 className="text-base font-bold text-foreground mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {step.desc}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── Simple 4-Step Process ──────────────────────────────── */}
-      <section className="py-20 container max-w-5xl space-y-12">
-        <div className="text-center space-y-2 max-w-xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">How MockMate Works</h2>
-          <p className="text-xs text-muted-foreground">
-            Clear, transparent steps to practice under realistic interview conditions.
+      {/* ═══════════════════════════════════════════════════════════
+          FEATURES — Three-column with thin top borders
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="py-24 md:py-32 px-6 md:px-16 lg:px-24 border-t border-white/[0.04]">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
+            Platform
           </p>
-        </div>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight max-w-3xl leading-[1.1] mb-16">
+            Built for focused{' '}
+            <span className="text-primary">technical prep.</span>
+          </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <Card className="border-border/50 bg-card p-5 space-y-3">
-            <div className="text-xs font-bold text-primary uppercase font-mono">Step 01</div>
-            <h3 className="text-sm font-bold">Select an Engineer</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Find senior interviewers by target company, experience level, and rate in ₹.
-            </p>
-          </Card>
-
-          <Card className="border-border/50 bg-card p-5 space-y-3">
-            <div className="text-xs font-bold text-primary uppercase font-mono">Step 02</div>
-            <h3 className="text-sm font-bold">Pick a Time Slot</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Book a 60-minute window directly on the interviewer's live schedule.
-            </p>
-          </Card>
-
-          <Card className="border-border/50 bg-card p-5 space-y-3">
-            <div className="text-xs font-bold text-primary uppercase font-mono">Step 03</div>
-            <h3 className="text-sm font-bold">Live 1-on-1 Practice</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Join the video room with Monaco code editor and shared technical workspace.
-            </p>
-          </Card>
-
-          <Card className="border-border/50 bg-card p-5 space-y-3">
-            <div className="text-xs font-bold text-primary uppercase font-mono">Step 04</div>
-            <h3 className="text-sm font-bold">Actionable Feedback</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Receive structured rating rubrics and personalized improvement notes.
-            </p>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+            {[
+              {
+                icon: <Video className="h-5 w-5" />,
+                title: 'Live WebRTC Video',
+                desc: 'Reliable audio and video with mic, camera, and screen sharing. Powered by LiveKit.',
+              },
+              {
+                icon: <Code2 className="h-5 w-5" />,
+                title: 'Monaco Code Editor',
+                desc: 'VS Code engine supporting Python, JS, TS, C++, Java, Go, and SQL with real-time sync.',
+              },
+              {
+                icon: <BrainCircuit className="h-5 w-5" />,
+                title: 'Structured Scorecards',
+                desc: 'Evaluation rubrics covering code quality, problem solving, time complexity, and communication.',
+              },
+            ].map((feature) => (
+              <div
+                key={feature.title}
+                className="border-t border-white/[0.06] pt-6 pb-8 md:pr-10"
+              >
+                <div className="text-primary mb-4">{feature.icon}</div>
+                <h3 className="text-base font-bold text-foreground mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {feature.desc}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ─── Platform Features Grid ──────────────────────────────── */}
-      <section className="py-20 bg-card/30 border-y border-border/40">
-        <div className="container max-w-5xl space-y-12">
-          <div className="text-center space-y-2 max-w-xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Built for Focused Technical Prep</h2>
-            <p className="text-xs text-muted-foreground">
-              Everything needed for realistic 60-minute mock interviews.
-            </p>
+      {/* ═══════════════════════════════════════════════════════════
+          INTERVIEWERS — Horizontal cards with images
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="py-24 md:py-32 px-6 md:px-16 lg:px-24 border-t border-white/[0.04]">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-14">
+            <div>
+              <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
+                Top Rated
+              </p>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]">
+                Featured{' '}
+                <span className="text-primary">interviewers.</span>
+              </h2>
+            </div>
+
+            <Link
+              href="/marketplace"
+              className="group flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              View All <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-border/50 bg-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <Video className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold">Live WebRTC Video</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Reliable WebRTC audio and video conferencing with mic, camera, and screen sharing controls.
-              </p>
-            </Card>
-
-            <Card className="border-border/50 bg-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <Code2 className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold">Monaco Code Workspace</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                VS Code powered interactive editor supporting Python, JS, TS, C++, Java, Go, and SQL with real-time sync.
-              </p>
-            </Card>
-
-            <Card className="border-border/50 bg-card p-6 space-y-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <BrainCircuit className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-bold">Structured Scorecards</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Comprehensive evaluation rubrics covering code quality, problem solving, time complexity, and communication.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Featured Interviewers Showcase ──────────────────────── */}
-      <section className="py-20 container max-w-5xl space-y-10 px-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Top-Rated Interviewers</h2>
-            <p className="text-xs text-muted-foreground">Book 1-on-1 sessions with experienced engineers.</p>
-          </div>
-
-          <Button asChild variant="outline" size="sm" className="text-xs font-medium gap-1.5 border-border/60">
-            <Link href="/marketplace">
-              View All Interviewers <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuredInterviewers.map((int) => (
-            <Card key={int.id} className="border-border/50 bg-card flex flex-col justify-between p-5">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
+            {featuredInterviewers.map((int) => (
+              <Link
+                key={int.id}
+                href={`/book/${int.id}`}
+                className="group block"
+              >
+                {/* Image */}
+                <div className="aspect-[4/3] rounded-lg overflow-hidden mb-4 bg-card">
                   <img
                     src={int.avatar}
                     alt={int.name}
-                    className="w-11 h-11 rounded-full object-cover border border-border"
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"
                   />
+                </div>
+
+                {/* Info */}
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h4 className="font-bold text-sm">{int.name}</h4>
-                    <p className="text-[11px] text-muted-foreground">{int.headline}</p>
+                    <h4 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                      {int.name}
+                    </h4>
+                    <p className="text-[12px] text-muted-foreground mt-0.5">
+                      {int.headline}
+                    </p>
+                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                      <Star className="h-3 w-3 fill-primary text-primary" />
+                      <span className="font-semibold text-foreground">{int.rating}</span>
+                      <span>({int.totalReviews} reviews)</span>
+                      <span className="mx-1.5 text-white/10">|</span>
+                      <span>{int.yearsOfExperience} yrs</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-base font-bold text-primary">
+                      {formatCurrency(int.pricePerHourPaise)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">/hour</div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-                  <div className="flex items-center gap-1 text-amber-400 font-bold">
-                    <Star className="h-3.5 w-3.5 fill-amber-400" />
-                    <span>{int.rating}</span>
-                    <span className="text-muted-foreground font-normal">({int.totalReviews})</span>
-                  </div>
-                  <div>{int.yearsOfExperience} yrs exp</div>
-                </div>
-
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {int.tags.map((t) => (
-                    <Badge key={t} variant="secondary" className="text-[10px] bg-secondary/80 font-normal">
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-border/40 mt-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] text-muted-foreground">Hourly Rate</div>
-                  <div className="text-base font-bold text-primary">{formatCurrency(int.pricePerHourPaise)}/hr</div>
-                </div>
-
-                <Button asChild size="sm" className="font-semibold text-xs">
-                  <Link href={`/book/${int.id}`}>Book Session</Link>
-                </Button>
-              </div>
-            </Card>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ─── Call to Action Banner ────────────────────────────────── */}
-      <section className="py-16 container max-w-5xl px-4">
-        <Card className="border-border/60 bg-card p-8 md:p-12 text-center space-y-5 shadow-lg">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight max-w-xl mx-auto">
-            Ready to Practice for Your Next Interview?
+      {/* ═══════════════════════════════════════════════════════════
+          CTA — Single bold line
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="py-24 md:py-32 px-6 md:px-16 lg:px-24 border-t border-white/[0.04]">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] max-w-3xl">
+            Ready to practice for your next{' '}
+            <span className="text-primary italic">interview?</span>
           </h2>
-
-          <p className="text-xs md:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Book a 1-on-1 session with senior engineers and get real feedback on your coding and communication skills.
+          <p className="text-sm text-muted-foreground mt-6 max-w-md leading-relaxed">
+            Book a 1-on-1 session with senior engineers and get real
+            feedback on your coding and communication skills.
           </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link href="/register">
-              <Button size="lg" className="font-semibold text-xs h-11 px-7 rounded-xl">
-                Get Started with MockMate <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
+          <div className="flex items-center gap-6 mt-10">
+            <Link
+              href="/register"
+              className="group flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+            >
+              Get Started with MockMate
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="/marketplace">
-              <Button variant="outline" size="lg" className="font-medium text-xs h-11 px-7 rounded-xl border-border/60">
-                Browse Interviewers
-              </Button>
+            <Link
+              href="/marketplace"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Browse Interviewers
             </Link>
           </div>
-        </Card>
+        </div>
       </section>
 
-      {/* ─── Footer ──────────────────────────────────────────────── */}
-      <footer className="mt-auto border-t border-border/40 bg-card/40 py-8">
-        <div className="container max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground px-4">
-          <div className="flex items-center gap-2">
-            <Code2 className="h-4 w-4 text-primary" />
-            <span className="font-bold text-foreground">MockMate</span> © {new Date().getFullYear()} — All rights reserved.
+      {/* ═══════════════════════════════════════════════════════════
+          FOOTER — Ultra minimal
+          ═══════════════════════════════════════════════════════════ */}
+      <footer className="mt-auto border-t border-white/[0.04] py-8 px-6 md:px-16 lg:px-24">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-muted-foreground">
+          <div>
+            <span className="font-bold text-foreground">MockMate</span>
+            {' '}© {new Date().getFullYear()}
           </div>
-
-          <div className="flex items-center gap-6 font-medium">
-            <Link href="/marketplace" className="hover:text-foreground transition-colors">Marketplace</Link>
-            <Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link>
-            <Link href="/register" className="hover:text-foreground transition-colors">Register</Link>
+          <div className="flex items-center gap-8 tracking-[0.1em] uppercase font-medium">
+            <Link href="/marketplace" className="hover:text-foreground transition-colors">
+              Marketplace
+            </Link>
+            <Link href="/login" className="hover:text-foreground transition-colors">
+              Sign In
+            </Link>
+            <Link href="/register" className="hover:text-foreground transition-colors">
+              Register
+            </Link>
           </div>
         </div>
       </footer>

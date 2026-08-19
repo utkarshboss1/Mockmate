@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   MockMate Soothing Design System
-   Natural slate tones, crisp legibility, human-centered UI
+   MockMate Design System — Editorial Dark
+   Inspired by bouayaben.com: bold type, pure black, warm coral
    ============================================================ */
 
 @theme inline {
@@ -53,72 +53,71 @@
 
 /* ─── Light Mode ──────────────────────────────────────────── */
 :root {
-  --background: oklch(0.98 0.005 240);
-  --foreground: oklch(0.18 0.02 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 250);
+  --background: #FAFAF8;
+  --foreground: #1A1A18;
+  --card: #FFFFFF;
+  --card-foreground: #1A1A18;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A18;
 
-  /* Calming Ocean Indigo Primary */
-  --primary: oklch(0.52 0.16 250);
-  --primary-foreground: oklch(1 0 0);
+  --primary: #E8613C;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: oklch(0.94 0.015 250);
-  --secondary-foreground: oklch(0.25 0.03 250);
-  --muted: oklch(0.95 0.01 240);
-  --muted-foreground: oklch(0.50 0.02 250);
-  --accent: oklch(0.93 0.02 250);
-  --accent-foreground: oklch(0.25 0.03 250);
-  --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.89 0.01 250);
-  --input: oklch(0.91 0.01 250);
-  --ring: oklch(0.52 0.16 250);
+  --secondary: #F0EDEA;
+  --secondary-foreground: #2A2825;
+  --muted: #F0EDEA;
+  --muted-foreground: #7A7570;
+  --accent: #F0EDEA;
+  --accent-foreground: #2A2825;
+  --destructive: #DC3545;
+  --border: #E0DCD8;
+  --input: #E0DCD8;
+  --ring: #E8613C;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  --sidebar: oklch(0.97 0.005 250);
-  --sidebar-foreground: oklch(0.18 0.02 250);
-  --sidebar-primary: oklch(0.52 0.16 250);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.93 0.02 250);
-  --sidebar-accent-foreground: oklch(0.25 0.03 250);
-  --sidebar-border: oklch(0.89 0.01 250);
-  --sidebar-ring: oklch(0.52 0.16 250);
+  --sidebar: #F5F3F0;
+  --sidebar-foreground: #1A1A18;
+  --sidebar-primary: #E8613C;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F0EDEA;
+  --sidebar-accent-foreground: #2A2825;
+  --sidebar-border: #E0DCD8;
+  --sidebar-ring: #E8613C;
 }
 
-/* ─── Dark Mode — Soothing Deep Slate ─────────────────────── */
+/* ─── Dark Mode — Pure Black Editorial ────────────────────── */
 .dark {
-  --background: oklch(0.13 0.015 250); /* #0D1117 - Soothing charcoal slate */
-  --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.17 0.018 250);       /* #161B24 - Soft slate cards */
-  --card-foreground: oklch(0.96 0.005 250);
-  --popover: oklch(0.17 0.018 250);
-  --popover-foreground: oklch(0.96 0.005 250);
+  --background: #0A0A0A;
+  --foreground: #F5F0EB;
+  --card: #111111;
+  --card-foreground: #F5F0EB;
+  --popover: #111111;
+  --popover-foreground: #F5F0EB;
 
-  /* Calming Slate Indigo Primary */
-  --primary: oklch(0.62 0.16 250);     /* #3B82F6 - Soft blue-indigo */
-  --primary-foreground: oklch(0.13 0.015 250);
+  /* Warm Coral Accent */
+  --primary: #E8613C;
+  --primary-foreground: #0A0A0A;
 
-  --secondary: oklch(0.22 0.02 250);
-  --secondary-foreground: oklch(0.94 0.005 250);
-  --muted: oklch(0.20 0.018 250);
-  --muted-foreground: oklch(0.68 0.015 250);
-  --accent: oklch(0.24 0.025 250);
-  --accent-foreground: oklch(0.96 0.005 250);
-  --destructive: oklch(0.62 0.20 25);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.62 0.16 250);
+  --secondary: #1A1A1A;
+  --secondary-foreground: #E8E2DC;
+  --muted: #161616;
+  --muted-foreground: #8A8580;
+  --accent: #1A1A1A;
+  --accent-foreground: #F5F0EB;
+  --destructive: #E04050;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #E8613C;
 
-  --sidebar: oklch(0.15 0.015 250);
-  --sidebar-foreground: oklch(0.94 0.005 250);
-  --sidebar-primary: oklch(0.62 0.16 250);
-  --sidebar-primary-foreground: oklch(0.13 0.015 250);
-  --sidebar-accent: oklch(0.24 0.025 250);
-  --sidebar-accent-foreground: oklch(0.96 0.005 250);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.62 0.16 250);
+  --sidebar: #0E0E0E;
+  --sidebar-foreground: #E8E2DC;
+  --sidebar-primary: #E8613C;
+  --sidebar-primary-foreground: #0A0A0A;
+  --sidebar-accent: #1A1A1A;
+  --sidebar-accent-foreground: #F5F0EB;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #E8613C;
 }
 
 /* ─── Base Styles ─────────────────────────────────────────── */
@@ -150,14 +149,14 @@
   }
 }
 
-/* ─── Custom Soothing Utilities ───────────────────────────── */
+/* ─── Custom Utilities ────────────────────────────────────── */
 @layer utilities {
-  /* Natural gradient text */
+  /* Coral gradient text highlight */
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-400 via-indigo-300 to-teal-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#E8613C] to-[#F09070] bg-clip-text text-transparent;
   }
 
-  /* Soothing card container */
+  /* Subtle glass card */
   .glass {
     @apply bg-card/80 backdrop-blur-md border border-white/5 shadow-lg;
   }
@@ -166,21 +165,21 @@
     @apply transition-all duration-200 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5;
   }
 
-  /* Soft shadow effects instead of harsh neon glows */
+  /* Warm glow for primary buttons */
   .glow-primary {
-    box-shadow: 0 4px 20px -4px oklch(0.62 0.16 250 / 20%);
+    box-shadow: 0 4px 24px -6px rgba(232, 97, 60, 0.3);
   }
 
   /* Code editor container */
   .editor-container {
-    @apply rounded-xl overflow-hidden border border-border/50 bg-[#161B22] shadow-xl;
+    @apply rounded-xl overflow-hidden border border-border bg-[#111111] shadow-xl;
   }
 }
 
 /* ─── Custom Scrollbars ───────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -188,9 +187,9 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-border/60 rounded-full;
+  @apply bg-white/10 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/50;
+  @apply bg-white/20;
 }
