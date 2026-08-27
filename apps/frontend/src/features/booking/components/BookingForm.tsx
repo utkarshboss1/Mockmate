@@ -2,28 +2,31 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { api, getErrorMessage } from '@/lib/api';
-import { SlotPicker } from '@/features/availability/components/SlotPicker';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { InterviewType } from '@interviewiq/shared';
+import { api, getErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, getInitials } from '@/lib/utils';
-import { Loader2, AlertCircle, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SlotPicker } from './SlotPicker';
+import { Calendar, ShieldCheck, ArrowRight, Loader2, AlertCircle, CreditCard } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface BookingFormProps {
   interviewer: {
     id: string;
+    userId: string;
     headline: string;
-    pricePerHour: number; // in paise
+    pricePerHour: number;
     user: {
+      id: string;
       name: string;
+      email: string;
       avatar: string | null;
     };
   };
@@ -32,7 +35,7 @@ interface BookingFormProps {
 interface RazorpayOrder {
   orderId: string;
   amount: number;
-  currency?: string;
+  currency: string;
   keyId: string;
 }
 
@@ -41,6 +44,20 @@ interface RazorpayHandlerResponse {
   razorpay_payment_id: string;
   razorpay_signature: string;
 }
+
+const loadRazorpaySDK = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) {
+      return resolve(true);
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 export function BookingForm({ interviewer }: BookingFormProps) {
   const router = useRouter();
@@ -62,6 +79,7 @@ export function BookingForm({ interviewer }: BookingFormProps) {
       setLoading(true);
       setError(null);
 
+      // 1. Create the booking record
       const response = await api.post('/bookings', {
         interviewerProfileId: interviewer.id,
         scheduledAt: selectedSlotIso,
@@ -71,61 +89,73 @@ export function BookingForm({ interviewer }: BookingFormProps) {
 
       const booking = response.data.data;
 
-      // Initiate Razorpay / Instant Payment Checkout
-      try {
-        const orderRes = await api.post('/payments/create-razorpay-order', {
-          bookingId: booking.id,
-        });
+      // 2. Create the Razorpay Order from backend
+      const orderRes = await api.post('/payments/create-razorpay-order', {
+        bookingId: booking.id,
+      });
 
-        const { orderId, amount, currency, keyId }: RazorpayOrder = orderRes.data.data;
+      const { orderId, amount, currency, keyId }: RazorpayOrder = orderRes.data.data;
 
-        if (typeof window !== 'undefined' && window.Razorpay && keyId && keyId !== 'rzp_test_mock_key') {
-          const options = {
-            key: keyId,
-            amount: amount,
-            currency: currency || 'INR',
-            name: 'MockMate',
-            description: `1-on-1 ${interviewType} Mock Interview`,
-            order_id: orderId,
-            handler: async function (response: RazorpayHandlerResponse) {
-              try {
-                await api.post('/payments/verify-razorpay-payment', {
-                  bookingId: booking.id,
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                });
-                router.push(`/dashboard?payment=success&bookingId=${booking.id}`);
-              } catch (verifyErr) {
-                // Payment captured but verification failed — surface it
-                // instead of silently swallowing the rejection.
-                toast.error(getErrorMessage(verifyErr));
-                setError(
-                  'Payment could not be verified. Please contact support with your payment reference before retrying.',
-                );
-              }
-            },
-            prefill: {
-              name: user?.name,
-              email: user?.email,
-            },
-            theme: {
-              color: '#3B82F6',
-            },
-          };
-
-          const rzp = new window.Razorpay(options);
-          rzp.open();
-          return;
-        }
-      } catch (e) {
-        console.warn('Razorpay checkout initialization notice:', e);
+      // 3. Ensure Razorpay Checkout SDK is ready
+      const isSdkLoaded = await loadRazorpaySDK();
+      if (!isSdkLoaded) {
+        toast.error('Failed to load Razorpay payment gateway. Please check your internet connection.');
+        setLoading(false);
+        return;
       }
 
-      router.push(`/dashboard?bookingCreated=${booking.id}`);
+      // 4. Open the Razorpay Payment Modal
+      const options = {
+        key: keyId || 'rzp_test_TRXiLextFCLkcj',
+        amount: amount,
+        currency: currency || 'INR',
+        name: 'MockMate',
+        description: `1-on-1 ${interviewType.replace('_', ' ')} Mock Interview with ${interviewer.user.name}`,
+        order_id: orderId,
+        handler: async function (paymentRes: RazorpayHandlerResponse) {
+          try {
+            setLoading(true);
+            await api.post('/payments/verify-razorpay-payment', {
+              bookingId: booking.id,
+              razorpayOrderId: paymentRes.razorpay_order_id,
+              razorpayPaymentId: paymentRes.razorpay_payment_id,
+              razorpaySignature: paymentRes.razorpay_signature,
+            });
+
+            toast.success('Payment verified! Your session is confirmed.');
+            router.push(`/dashboard?payment=success&bookingId=${booking.id}`);
+          } catch (verifyErr) {
+            toast.error(getErrorMessage(verifyErr));
+            setError('Payment verification failed. If your money was deducted, please contact support.');
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+        },
+        theme: {
+          color: '#F97316', // MockMate primary coral theme
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+            toast.info('Payment window closed. Your reservation is pending payment.');
+            router.push(`/dashboard?bookingPending=${booking.id}`);
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (resp: any) {
+        setLoading(false);
+        toast.error(resp?.error?.description || 'Payment transaction failed. Please retry.');
+      });
+
+      rzp.open();
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
       setLoading(false);
     }
   };
@@ -135,7 +165,7 @@ export function BookingForm({ interviewer }: BookingFormProps) {
       {/* Main Booking Controls */}
       <Card className="lg:col-span-2 border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2 font-heading">
             <Calendar className="h-6 w-6 text-primary" /> Book Mock Interview
           </CardTitle>
           <CardDescription>
@@ -159,9 +189,11 @@ export function BookingForm({ interviewer }: BookingFormProps) {
 
           {/* Interview Type Selection */}
           <div className="space-y-2 pt-4 border-t border-border/40">
-            <Label htmlFor="interviewType">3. Interview Type / Focus Area</Label>
+            <Label htmlFor="interviewType" className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+              Interview Type / Focus Area
+            </Label>
             <Select value={interviewType} onValueChange={(val) => setInterviewType(val as InterviewType)}>
-              <SelectTrigger id="interviewType">
+              <SelectTrigger id="interviewType" className="h-11">
                 <SelectValue placeholder="Select interview type" />
               </SelectTrigger>
               <SelectContent>
@@ -176,7 +208,9 @@ export function BookingForm({ interviewer }: BookingFormProps) {
 
           {/* Prep Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">4. Topics or Companies You Are Preparing For (Optional)</Label>
+            <Label htmlFor="notes" className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+              Topics or Companies You Are Preparing For (Optional)
+            </Label>
             <Textarea
               id="notes"
               rows={3}
@@ -191,7 +225,7 @@ export function BookingForm({ interviewer }: BookingFormProps) {
       {/* Summary Sidebar */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl sticky top-20">
         <CardHeader className="pb-4 border-b border-border/40">
-          <CardTitle className="text-lg">Booking Summary</CardTitle>
+          <CardTitle className="text-lg font-heading">Booking Summary</CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-3">
@@ -218,23 +252,30 @@ export function BookingForm({ interviewer }: BookingFormProps) {
             </div>
             <div className="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border/40">
               <span>Total Price:</span>
-              <span className="text-primary">{formatCurrency(interviewer.pricePerHour)}</span>
+              <span className="text-primary font-heading text-base font-extrabold">{formatCurrency(interviewer.pricePerHour)}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>Encrypted payment. Free cancellation up to 24h before session.</span>
+            <span>Secured via Razorpay. Free cancellation up to 24h before session.</span>
           </div>
         </CardContent>
         <CardFooter className="p-6 pt-0">
           <Button
             onClick={handleSubmitBooking}
-            className="w-full font-semibold gap-2 glow-primary"
+            className="w-full h-11 text-xs font-bold gap-2 glow-primary cursor-pointer"
             disabled={loading || !selectedSlotIso}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Confirm & Proceed <ArrowRight className="h-4 w-4" />
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Opening Razorpay...
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-4 w-4" /> Pay & Confirm Booking <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>
