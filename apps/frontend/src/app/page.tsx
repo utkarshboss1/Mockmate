@@ -66,12 +66,12 @@ export default function HomePage() {
           ═══════════════════════════════════════════════════════════ */}
       <section className="relative min-h-[90vh] flex flex-col justify-center px-6 md:px-16 lg:px-24">
         {/* Uppercase label */}
-        <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-8">
+        <p className="reveal text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-8">
           Mock Interview Platform · India
         </p>
 
         {/* Massive heading */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-extrabold leading-[0.95] tracking-[-0.03em] max-w-5xl font-heading">
+        <h1 className="reveal reveal-delay-1 text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-extrabold leading-[0.95] tracking-[-0.03em] max-w-5xl font-heading">
           Practice interviews{' '}
           <br className="hidden md:block" />
           with{' '}
@@ -79,52 +79,52 @@ export default function HomePage() {
         </h1>
 
         {/* Subdued body */}
-        <p className="text-sm md:text-base text-muted-foreground max-w-md mt-10 leading-relaxed">
+        <p className="reveal reveal-delay-2 text-sm md:text-base text-muted-foreground max-w-md mt-10 leading-relaxed">
           Book 1-on-1 sessions with senior engineers from
           Google, Meta, Amazon and Microsoft. Live coding,
           system design, and actionable scorecards.
         </p>
 
-        {/* Scroll indicator — bottom right */}
-        <div className="absolute bottom-10 right-8 md:right-16 flex items-center gap-2 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground">
-          <span>Scroll</span>
-          <ArrowDown className="h-3.5 w-3.5" />
-        </div>
-
         {/* Subtle CTAs */}
-        <div className="flex items-center gap-6 mt-12">
+        <div className="reveal reveal-delay-3 flex items-center gap-6 mt-12">
           <Link
             href="/marketplace"
-            className="group flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+            className="group flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-sm"
           >
             Find an Interviewer
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
           </Link>
           <Link
             href="/register?role=interviewer"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-sm"
           >
             Join as Interviewer
           </Link>
+        </div>
+
+        {/* Scroll indicator — bottom right */}
+        <div className="absolute bottom-10 right-8 md:right-16 flex items-center gap-2 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground reveal reveal-delay-4">
+          <span>Scroll</span>
+          <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
           STATS BAR — Minimal horizontal strip
           ═══════════════════════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.04] py-10 px-6 md:px-16 lg:px-24">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="border-y border-white/[0.04] py-12 px-6 md:px-16 lg:px-24">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           {[
             { value: '500+', label: 'Verified Interviewers' },
             { value: '10,000+', label: 'Sessions Conducted' },
             { value: '4.9 / 5', label: 'Average Rating' },
             { value: '₹500+', label: 'Starting Rate / hr' },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <div className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+          ].map((stat, i) => (
+            <div key={stat.label} className={`reveal reveal-delay-${i + 1}`}>
+              <div className="text-2xl md:text-3xl font-bold tracking-tight text-foreground font-heading">
                 {stat.value}
               </div>
-              <div className="text-[11px] text-muted-foreground mt-1 tracking-wide uppercase">
+              <div className="text-[11px] text-muted-foreground mt-1.5 tracking-wide uppercase">
                 {stat.label}
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function HomePage() {
           <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
             How it works
           </p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight max-w-2xl leading-[1.1] mb-16">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight max-w-2xl leading-[1.1] mb-16 font-heading">
             From booking to{' '}
             <span className="text-primary">feedback</span> in four steps.
           </h2>
@@ -170,12 +170,12 @@ export default function HomePage() {
             ].map((step) => (
               <div
                 key={step.num}
-                className="border-t border-white/[0.06] pt-6 pb-8 lg:pr-10"
+                className="border-t border-white/[0.06] pt-6 pb-8 lg:pr-10 group transition-colors duration-200 hover:border-primary/30"
               >
-                <div className="text-[11px] font-mono font-medium text-primary tracking-wider mb-4">
+                <div className="text-[11px] font-mono font-medium text-primary tracking-wider mb-4 transition-transform duration-200 group-hover:translate-x-1">
                   {step.num}
                 </div>
-                <h3 className="text-base font-bold text-foreground mb-2">
+                <h3 className="text-base font-bold text-foreground mb-2 font-heading">
                   {step.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
@@ -195,7 +195,7 @@ export default function HomePage() {
           <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
             Platform
           </p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight max-w-3xl leading-[1.1] mb-16">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight max-w-3xl leading-[1.1] mb-16 font-heading">
             Built for focused{' '}
             <span className="text-primary">technical prep.</span>
           </h2>
@@ -220,10 +220,10 @@ export default function HomePage() {
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="border-t border-white/[0.06] pt-6 pb-8 md:pr-10"
+                className="border-t border-white/[0.06] pt-6 pb-8 md:pr-10 group transition-colors duration-200 hover:border-primary/30"
               >
-                <div className="text-primary mb-4">{feature.icon}</div>
-                <h3 className="text-base font-bold text-foreground mb-2">
+                <div className="text-primary mb-4 transition-transform duration-200 group-hover:scale-110 inline-block">{feature.icon}</div>
+                <h3 className="text-base font-bold text-foreground mb-2 font-heading">
                   {feature.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
@@ -236,7 +236,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          INTERVIEWERS — Horizontal cards with images
+          INTERVIEWERS — Cards with images
           ═══════════════════════════════════════════════════════════ */}
       <section className="py-24 md:py-32 px-6 md:px-16 lg:px-24 border-t border-white/[0.04]">
         <div className="max-w-6xl mx-auto">
@@ -245,7 +245,7 @@ export default function HomePage() {
               <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-4">
                 Top Rated
               </p>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] font-heading">
                 Featured{' '}
                 <span className="text-primary">interviewers.</span>
               </h2>
@@ -253,18 +253,18 @@ export default function HomePage() {
 
             <Link
               href="/marketplace"
-              className="group flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              className="group flex items-center gap-1.5 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors duration-200 shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-sm"
             >
-              View All <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+              View All <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredInterviewers.map((int) => (
               <Link
                 key={int.id}
                 href={`/book/${int.id}`}
-                className="group block"
+                className="group block cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-lg"
               >
                 {/* Image */}
                 <div className="aspect-[4/3] rounded-lg overflow-hidden mb-4 bg-card">
@@ -278,7 +278,7 @@ export default function HomePage() {
                 {/* Info */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h4 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                    <h4 className="text-base font-bold text-foreground group-hover:text-primary transition-colors duration-200 font-heading">
                       {int.name}
                     </h4>
                     <p className="text-[12px] text-muted-foreground mt-0.5">
@@ -293,7 +293,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-base font-bold text-primary">
+                    <div className="text-base font-bold text-primary font-heading">
                       {formatCurrency(int.pricePerHourPaise)}
                     </div>
                     <div className="text-[10px] text-muted-foreground">/hour</div>
@@ -310,7 +310,7 @@ export default function HomePage() {
           ═══════════════════════════════════════════════════════════ */}
       <section className="py-24 md:py-32 px-6 md:px-16 lg:px-24 border-t border-white/[0.04]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] max-w-3xl">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] max-w-3xl font-heading">
             Ready to practice for your next{' '}
             <span className="text-primary italic">interview?</span>
           </h2>
@@ -321,14 +321,14 @@ export default function HomePage() {
           <div className="flex items-center gap-6 mt-10">
             <Link
               href="/register"
-              className="group flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+              className="group flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-sm"
             >
               Get Started with MockMate
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
             <Link
               href="/marketplace"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-sm"
             >
               Browse Interviewers
             </Link>
@@ -342,17 +342,17 @@ export default function HomePage() {
       <footer className="mt-auto border-t border-white/[0.04] py-8 px-6 md:px-16 lg:px-24">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-muted-foreground">
           <div>
-            <span className="font-bold text-foreground">MockMate</span>
+            <span className="font-bold text-foreground font-heading">MockMate</span>
             {' '}© {new Date().getFullYear()}
           </div>
           <div className="flex items-center gap-8 tracking-[0.1em] uppercase font-medium">
-            <Link href="/marketplace" className="hover:text-foreground transition-colors">
+            <Link href="/marketplace" className="hover:text-foreground transition-colors duration-200 cursor-pointer">
               Marketplace
             </Link>
-            <Link href="/login" className="hover:text-foreground transition-colors">
+            <Link href="/login" className="hover:text-foreground transition-colors duration-200 cursor-pointer">
               Sign In
             </Link>
-            <Link href="/register" className="hover:text-foreground transition-colors">
+            <Link href="/register" className="hover:text-foreground transition-colors duration-200 cursor-pointer">
               Register
             </Link>
           </div>

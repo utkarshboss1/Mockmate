@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   MockMate Design System — Editorial Dark
-   Inspired by bouayaben.com: bold type, pure black, warm coral
+   MockMate Design System — UI/UX Pro Max
+   Fonts: Space Grotesk (heading) + DM Sans (body)
+   Palette: Deep indigo black + warm orange CTA
    ============================================================ */
 
 @theme inline {
@@ -60,64 +61,64 @@
   --popover: #FFFFFF;
   --popover-foreground: #1A1A18;
 
-  --primary: #E8613C;
+  --primary: #F97316;
   --primary-foreground: #FFFFFF;
 
   --secondary: #F0EDEA;
-  --secondary-foreground: #2A2825;
+  --secondary-foreground: #1E1B4B;
   --muted: #F0EDEA;
   --muted-foreground: #7A7570;
   --accent: #F0EDEA;
-  --accent-foreground: #2A2825;
+  --accent-foreground: #1E1B4B;
   --destructive: #DC3545;
   --border: #E0DCD8;
   --input: #E0DCD8;
-  --ring: #E8613C;
+  --ring: #F97316;
 
   --radius: 0.5rem;
 
   --sidebar: #F5F3F0;
   --sidebar-foreground: #1A1A18;
-  --sidebar-primary: #E8613C;
+  --sidebar-primary: #F97316;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #F0EDEA;
-  --sidebar-accent-foreground: #2A2825;
+  --sidebar-accent-foreground: #1E1B4B;
   --sidebar-border: #E0DCD8;
-  --sidebar-ring: #E8613C;
+  --sidebar-ring: #F97316;
 }
 
-/* ─── Dark Mode — Pure Black Editorial ────────────────────── */
+/* ─── Dark Mode — Deep Indigo Black ───────────────────────── */
 .dark {
-  --background: #0A0A0A;
-  --foreground: #F5F0EB;
-  --card: #111111;
-  --card-foreground: #F5F0EB;
-  --popover: #111111;
-  --popover-foreground: #F5F0EB;
+  --background: #0F0F23;
+  --foreground: #F8FAFC;
+  --card: #151530;
+  --card-foreground: #F8FAFC;
+  --popover: #151530;
+  --popover-foreground: #F8FAFC;
 
-  /* Warm Coral Accent */
-  --primary: #E8613C;
-  --primary-foreground: #0A0A0A;
+  /* Warm Orange CTA Accent */
+  --primary: #F97316;
+  --primary-foreground: #0F0F23;
 
-  --secondary: #1A1A1A;
+  --secondary: #1E1B4B;
   --secondary-foreground: #E8E2DC;
-  --muted: #161616;
-  --muted-foreground: #8A8580;
-  --accent: #1A1A1A;
-  --accent-foreground: #F5F0EB;
+  --muted: #1A1840;
+  --muted-foreground: #8A8A9E;
+  --accent: #1E1B4B;
+  --accent-foreground: #F8FAFC;
   --destructive: #E04050;
   --border: rgba(255, 255, 255, 0.06);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #E8613C;
+  --ring: #F97316;
 
-  --sidebar: #0E0E0E;
+  --sidebar: #0E0E20;
   --sidebar-foreground: #E8E2DC;
-  --sidebar-primary: #E8613C;
-  --sidebar-primary-foreground: #0A0A0A;
-  --sidebar-accent: #1A1A1A;
-  --sidebar-accent-foreground: #F5F0EB;
+  --sidebar-primary: #F97316;
+  --sidebar-primary-foreground: #0F0F23;
+  --sidebar-accent: #1E1B4B;
+  --sidebar-accent-foreground: #F8FAFC;
   --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: #E8613C;
+  --sidebar-ring: #F97316;
 }
 
 /* ─── Base Styles ─────────────────────────────────────────── */
@@ -147,13 +148,34 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
+
+  /* ── Anti-pattern fix: cursor-pointer on all interactive elements ── */
+  a, button, [role="button"], input[type="submit"], input[type="reset"],
+  input[type="button"], select, [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
+  }
+
+  /* ── Anti-pattern fix: visible focus states for keyboard nav ── */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* ─── Reduced Motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─── Custom Utilities ────────────────────────────────────── */
 @layer utilities {
   /* Coral gradient text highlight */
   .text-gradient {
-    @apply bg-gradient-to-r from-[#E8613C] to-[#F09070] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#F97316] to-[#FB923C] bg-clip-text text-transparent;
   }
 
   /* Subtle glass card */
@@ -167,13 +189,46 @@
 
   /* Warm glow for primary buttons */
   .glow-primary {
-    box-shadow: 0 4px 24px -6px rgba(232, 97, 60, 0.3);
+    box-shadow: 0 4px 24px -6px rgba(249, 115, 22, 0.3);
   }
 
   /* Code editor container */
   .editor-container {
-    @apply rounded-xl overflow-hidden border border-border bg-[#111111] shadow-xl;
+    @apply rounded-xl overflow-hidden border border-border bg-[#151530] shadow-xl;
   }
+
+  /* ── Scroll-triggered reveal animation ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: revealUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .reveal-delay-1 { animation-delay: 0.1s; }
+  .reveal-delay-2 { animation-delay: 0.2s; }
+  .reveal-delay-3 { animation-delay: 0.3s; }
+  .reveal-delay-4 { animation-delay: 0.4s; }
+
+  /* ── Pulse dot indicator (AI-native typing style) ── */
+  .pulse-dot {
+    @apply h-1.5 w-1.5 rounded-full bg-primary;
+    animation: pulseDot 1.4s ease-in-out infinite;
+  }
+  .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+  .pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+}
+
+/* ─── Keyframes ───────────────────────────────────────────── */
+@keyframes revealUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseDot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
 }
 
 /* ─── Custom Scrollbars ───────────────────────────────────── */
