@@ -5,11 +5,24 @@
 import { interviewRepository, InterviewRepository } from './interview.repository';
 import { generateLiveKitToken } from '../../lib/livekit';
 import { errors } from '../../middleware/error.middleware';
-import { InterviewStatus, UserRole } from '@interviewiq/shared';
+import { InterviewStatus } from '@interviewiq/shared';
 import { isDbConnected } from '../../lib/prisma';
 
 export class InterviewService {
   constructor(private repository: InterviewRepository) {}
+
+  private assertParticipant(
+    interview: { booking: { candidateId: string; interviewerProfile: { userId: string } } },
+    userId: string,
+    action = 'access',
+  ): void {
+    const isCandidate = interview.booking.candidateId === userId;
+    const isInterviewer = interview.booking.interviewerProfile.userId === userId;
+
+    if (!isCandidate && !isInterviewer) {
+      throw errors.forbidden(`You are not authorized to ${action} this interview`);
+    }
+  }
 
   async getInterviewToken(interviewId: string, userId: string, userName: string) {
     const interview = await this.repository.getInterviewById(interviewId);
@@ -76,13 +89,51 @@ export class InterviewService {
 
     const isInterviewer = interview.booking.interviewerProfile.userId === userId;
     const isCandidate = interview.booking.candidateId === userId;
-    const canEnd = isInterviewer || (isCandidate && !isDbConnected());
+    const canEnd = isInterviewer || isCandidate;
 
     if (!canEnd) {
-      throw errors.forbidden('Only the interviewer can conclude the interview session');
+      throw errors.forbidden('You are not authorized to conclude this interview session');
     }
 
     return this.repository.updateInterviewStatus(interviewId, InterviewStatus.ENDED, 'endedAt');
+  }
+
+  async getInterviewMessages(interviewId: string, userId: string) {
+    const interview = await this.repository.getInterviewById(interviewId);
+    if (!interview) {
+      throw errors.notFound('Interview room');
+    }
+
+    this.assertParticipant(
+      interview,
+      userId,
+      'view messages for',
+    );
+
+    return this.repository.getMessagesByInterviewId(interviewId);
+  }
+
+  async saveCodeSnapshot(
+    interviewId: string,
+    userId: string,
+    content: string,
+    language?: string,
+  ) {
+    if (typeof content !== 'string' || content.length === 0) {
+      throw errors.badRequest('Snapshot content is required and must be a non-empty string');
+    }
+    if (content.length > 500_000) {
+      throw errors.badRequest('Snapshot content exceeds the maximum allowed size');
+    }
+
+    const interview = await this.repository.getInterviewById(interviewId);
+    if (!interview) {
+      throw errors.notFound('Interview room');
+    }
+
+    this.assertParticipant(interview, userId, 'save a snapshot for');
+
+    return this.repository.upsertCodeSnapshot(interviewId, content, language);
   }
 }
 
