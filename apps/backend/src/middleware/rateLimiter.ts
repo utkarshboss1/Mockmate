@@ -7,6 +7,7 @@
 // ============================================================
 
 import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -39,6 +40,9 @@ export const authLimiter = rateLimit({
 export const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
+  // Key by authenticated user when available so users behind shared NATs
+  // don't exhaust each other's quota; fall back to IP for anonymous calls.
+  keyGenerator: (req: Request) => req.user?.id ?? req.ip ?? 'unknown',
   standardHeaders: true,
   legacyHeaders: false,
   message: {

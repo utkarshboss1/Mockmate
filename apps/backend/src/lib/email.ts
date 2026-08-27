@@ -22,7 +22,7 @@ export async function sendEmail(params: {
 
   try {
     return await resend.emails.send({
-      from: 'InterviewIQ <notifications@interviewiq.com>',
+      from: env.EMAIL_FROM,
       to: params.to,
       subject: params.subject,
       html: params.html,

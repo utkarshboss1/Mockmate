@@ -50,6 +50,19 @@ export const userStore = {
   },
 
   findSession(token: string): StoredSession | undefined {
-    return sessionsByToken.get(token);
+    const session = sessionsByToken.get(token);
+    if (!session) return undefined;
+
+    // Expired sessions must never authenticate anything
+    if (session.expiresAt <= new Date()) {
+      sessionsByToken.delete(token);
+      return undefined;
+    }
+
+    return session;
+  },
+
+  deleteSession(token: string): void {
+    sessionsByToken.delete(token);
   },
 };

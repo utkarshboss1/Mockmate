@@ -36,18 +36,52 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default('notifications@interviewiq.com'),
 
   // Groq AI
-  GROQ_API_KEY: z.string().default('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'),
+  GROQ_API_KEY: z.string().default(''),
 
   // Razorpay
   RAZORPAY_KEY_ID: z.string().default('rzp_test_mock_key'),
   RAZORPAY_KEY_SECRET: z.string().default('mock_secret'),
   RAZORPAY_WEBHOOK_SECRET: z.string().default('mock_webhook_secret'),
 
+  DIRECT_URL: z.string().default(''),
+
   // Auth Controls
   ALLOW_MOCK_AUTH: z.string().default('true').transform((val) => val === 'true'),
 });
 
-const parsed = envSchema.safeParse(process.env);
+// Secrets must never fall back to insecure development defaults in production.
+const INSECURE_PRODUCTION_DEFAULTS: Array<[keyof z.infer<typeof envSchema>, string[]]> = [
+  ['BETTER_AUTH_SECRET', ['development_secret_key_32_characters_minimum_entropy']],
+  ['LIVEKIT_API_KEY', ['devkey']],
+  ['LIVEKIT_API_SECRET', ['secret']],
+  ['CLOUDINARY_API_SECRET', ['abcdefghijklmnopqrstuvwxyz']],
+  ['RESEND_API_KEY', ['re_123456789_mock_key']],
+  ['RAZORPAY_KEY_ID', ['rzp_test_mock_key']],
+  ['RAZORPAY_KEY_SECRET', ['mock_secret']],
+  ['RAZORPAY_WEBHOOK_SECRET', ['mock_webhook_secret']],
+];
+
+const parsed = envSchema.superRefine((data, ctx) => {
+  if (data.NODE_ENV !== 'production') return;
+
+  for (const [key, forbidden] of INSECURE_PRODUCTION_DEFAULTS) {
+    if (!data[key] || forbidden.includes(data[key] as string)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [key],
+        message: `${String(key)} must be set to a real value in production`,
+      });
+    }
+  }
+
+  if (!data.GROQ_API_KEY) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['GROQ_API_KEY'],
+      message: 'GROQ_API_KEY must be set in production',
+    });
+  }
+}).safeParse(process.env);
 
 if (!parsed.success) {
   console.error('❌ Invalid environment variables:');

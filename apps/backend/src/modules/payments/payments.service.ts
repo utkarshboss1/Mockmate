@@ -5,58 +5,10 @@
 import { paymentsRepository, PaymentsRepository } from './payments.repository';
 import { env } from '../../config/env';
 import { errors } from '../../middleware/error.middleware';
-import { BookingStatus, PaymentStatus } from '@interviewiq/shared';
+import { PaymentStatus } from '@interviewiq/shared';
 
 export class PaymentsService {
   constructor(private repository: PaymentsRepository) {}
-
-  async createCheckoutSession(candidateId: string, bookingId: string) {
-    const booking = await this.repository.getBookingWithCandidateAndInterviewer(bookingId);
-    if (!booking) {
-      throw errors.notFound('Booking');
-    }
-
-    if (booking.candidateId !== candidateId) {
-      throw errors.forbidden('You can only pay for your own bookings');
-    }
-
-    if (booking.status === BookingStatus.CONFIRMED) {
-      throw errors.badRequest('This booking has already been paid for and confirmed');
-    }
-
-    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-    // Instantly confirm payment & room allocation
-    const { booking: confirmedBooking } = await this.repository.confirmPaymentAndInitializeRoom(
-      booking.id,
-      transactionId,
-      booking.totalAmountCents,
-    );
-
-    // Trigger In-App Notification & Email
-    try {
-      const { notificationService } = await import('../notification/notification.service');
-      const bookingFull = await this.repository.getBookingWithCandidateAndInterviewer(bookingId);
-      if (bookingFull) {
-        void notificationService.notifyBookingConfirmed({
-          candidateId: bookingFull.candidateId,
-          candidateEmail: bookingFull.candidate.email,
-          interviewerUserId: bookingFull.interviewerProfile.userId,
-          interviewerEmail: bookingFull.interviewerProfile.user.email,
-          interviewerName: bookingFull.interviewerProfile.user.name,
-          candidateName: bookingFull.candidate.name,
-          scheduledAt: bookingFull.scheduledAt ? new Date(bookingFull.scheduledAt).toISOString() : new Date().toISOString(),
-          bookingId: bookingFull.id,
-        });
-      }
-    } catch (err) {
-      console.warn('Failed to send booking notification:', err);
-    }
-
-    return {
-      url: `${env.FRONTEND_URL}/dashboard?payment=success&bookingId=${confirmedBooking.id}`,
-    };
-  }
 
   async createRazorpayOrder(candidateId: string, bookingId: string) {
     const booking = await this.repository.getBookingWithCandidateAndInterviewer(bookingId);
@@ -98,7 +50,13 @@ export class PaymentsService {
     if (!booking) throw errors.notFound('Booking');
     if (booking.candidateId !== candidateId) throw errors.forbidden('Forbidden');
 
-    if (env.RAZORPAY_KEY_SECRET !== 'mock_secret') {
+    // Signature verification is ALWAYS enforced. The only bypass is a mock
+    // order created in non-production when Razorpay keys are not configured.
+    const isMockOrder = input.razorpayOrderId.startsWith('order_mock_');
+    const isMockMode =
+      env.RAZORPAY_KEY_SECRET === 'mock_secret' && env.NODE_ENV !== 'production';
+
+    if (!(isMockMode && isMockOrder)) {
       const crypto = await import('crypto');
       const body = `${input.razorpayOrderId}|${input.razorpayPaymentId}`;
       const expectedSignature = crypto
@@ -106,7 +64,7 @@ export class PaymentsService {
         .update(body)
         .digest('hex');
 
-      if (expectedSignature !== input.razorpaySignature) {
+      if (!input.razorpaySignature || expectedSignature !== input.razorpaySignature) {
         throw errors.badRequest('Invalid payment signature');
       }
     }
@@ -120,10 +78,15 @@ export class PaymentsService {
     return { success: true, bookingId: confirmedBooking.id };
   }
 
-  async getPaymentStatus(bookingId: string) {
+  async getPaymentStatus(bookingId: string, candidateId: string) {
     const booking = await this.repository.getBookingWithCandidateAndInterviewer(bookingId);
+    if (!booking) throw errors.notFound('Booking');
+    if (booking.candidateId !== candidateId) {
+      throw errors.forbidden('You can only view payment status for your own bookings');
+    }
+
     return {
-      status: booking?.payment?.status || PaymentStatus.SUCCEEDED,
+      status: booking.payment?.status ?? PaymentStatus.PENDING,
     };
   }
 }

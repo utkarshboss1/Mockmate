@@ -35,27 +35,35 @@ export async function requireAuth(
       }
     }
 
-    // Fallback for explicit sample mock tokens if database is offline
+    // Fallback for explicit sample mock tokens if database is offline.
+    // Restricted to exact, non-guessable dev-only tokens — never match on
+    // substrings of the header (a real token could contain "admin").
     if (!isDbConnected() && env.NODE_ENV !== 'production' && env.ALLOW_MOCK_AUTH) {
-      let role = UserRole.CANDIDATE;
-      let name = 'Mock Candidate';
-      let id = 'candidate_1';
+      const MOCK_TOKENS: Record<string, { role: UserRole; name: string; id: string }> = {
+        'mock-token-admin': { role: UserRole.ADMIN, name: 'Mock Admin', id: 'admin_1' },
+        'mock-token-interviewer': {
+          role: UserRole.INTERVIEWER,
+          name: 'Mock Interviewer',
+          id: 'interviewer_1',
+        },
+        'mock-token-candidate': {
+          role: UserRole.CANDIDATE,
+          name: 'Mock Candidate',
+          id: 'candidate_1',
+        },
+      };
 
-      if (authHeader?.includes('interviewer')) {
-        role = UserRole.INTERVIEWER;
-        name = 'Mock Interviewer';
-        id = 'interviewer_1';
-      } else if (authHeader?.includes('admin')) {
-        role = UserRole.ADMIN;
-        name = 'Mock Admin';
-        id = 'admin_1';
+      const token = (authHeader ?? '').replace(/^Bearer\s+/i, '').trim();
+      const mock = MOCK_TOKENS[token];
+      if (!mock) {
+        throw errors.unauthorized('Authentication required');
       }
 
       req.user = {
-        id,
-        email: `${role.toLowerCase()}@mock.com`,
-        name,
-        role,
+        id: mock.id,
+        email: `${mock.role.toLowerCase()}@mock.com`,
+        name: mock.name,
+        role: mock.role,
         status: UserStatus.ACTIVE,
       };
       return next();

@@ -21,12 +21,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-COPY --from=builder /app/apps/frontend/.next ./apps/frontend/.next
+# Standalone output bundles only the traced runtime dependencies
+COPY --from=builder /app/apps/frontend/.next/standalone ./
+COPY --from=builder /app/apps/frontend/.next/static ./apps/frontend/.next/static
 COPY --from=builder /app/apps/frontend/public ./apps/frontend/public
-COPY --from=builder /app/apps/frontend/package*.json ./apps/frontend/
-COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start", "--workspace=apps/frontend"]
+CMD ["node", "apps/frontend/server.js"]

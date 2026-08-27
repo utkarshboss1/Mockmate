@@ -7,7 +7,7 @@ async function seed() {
   console.log('Seeding Supabase database...');
 
   // 1. Create sample Interviewer User & Profile
-  const interviewerUser1 = await prisma.user.upsert({
+  const _interviewerUser1 = await prisma.user.upsert({
     where: { email: 'priya.sharma@example.com' },
     update: {},
     create: {
@@ -35,7 +35,7 @@ async function seed() {
     },
   });
 
-  const interviewerUser2 = await prisma.user.upsert({
+  const _interviewerUser2 = await prisma.user.upsert({
     where: { email: 'rahul.verma@example.com' },
     update: {},
     create: {
@@ -64,7 +64,7 @@ async function seed() {
   });
 
   // 2. Create Candidate User
-  const candidateUser = await prisma.user.upsert({
+  const _candidateUser = await prisma.user.upsert({
     where: { email: 'candidate@example.com' },
     update: {},
     create: {

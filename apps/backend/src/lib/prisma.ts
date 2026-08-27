@@ -2,7 +2,6 @@
 // prisma.ts — Prisma Client Singleton
 // ============================================================
 
-import '../config/env';
 import { PrismaClient } from '@prisma/client';
 import { env } from '../config/env';
 
@@ -27,4 +26,21 @@ export function setIsDbConnected(status: boolean) {
 
 export function isDbConnected(): boolean {
   return globalForPrisma.isDbConnected ?? false;
+}
+
+/**
+ * Actively pings the database and refreshes the connection flag.
+ * The flag must reflect reality — a transient startup failure should not
+ * permanently pin the app in mock mode, and an outage later on should be
+ * detected instead of serving stale "connected" state.
+ */
+export async function checkDbConnection(): Promise<boolean> {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    setIsDbConnected(true);
+    return true;
+  } catch (_) {
+    setIsDbConnected(false);
+    return false;
+  }
 }

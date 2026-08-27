@@ -113,7 +113,7 @@ export function LiveVideoRoom({ token, serverUrl, onLeave }: LiveVideoRoomProps)
             variant={micOn ? 'secondary' : 'destructive'}
             onClick={() => setMicOn(!micOn)}
             className="h-9 w-9 rounded-full shadow"
-            title={micOn ? 'Mute Microphone' : 'Unmute Microphone'}
+            aria-label={micOn ? 'Mute Microphone' : 'Unmute Microphone'}
           >
             {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
           </Button>
@@ -123,7 +123,7 @@ export function LiveVideoRoom({ token, serverUrl, onLeave }: LiveVideoRoomProps)
             variant={videoOn ? 'secondary' : 'destructive'}
             onClick={() => setVideoOn(!videoOn)}
             className="h-9 w-9 rounded-full shadow"
-            title={videoOn ? 'Turn Off Camera' : 'Turn On Camera'}
+            aria-label={videoOn ? 'Turn Off Camera' : 'Turn On Camera'}
           >
             {videoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
           </Button>
@@ -133,7 +133,7 @@ export function LiveVideoRoom({ token, serverUrl, onLeave }: LiveVideoRoomProps)
             variant={screenSharing ? 'default' : 'outline'}
             onClick={() => setScreenSharing(!screenSharing)}
             className="h-9 w-9 rounded-full shadow"
-            title="Share Screen"
+            aria-label="Share Screen"
           >
             <Monitor className="h-4 w-4" />
           </Button>
@@ -144,7 +144,7 @@ export function LiveVideoRoom({ token, serverUrl, onLeave }: LiveVideoRoomProps)
               variant="destructive"
               onClick={onLeave}
               className="h-9 w-9 rounded-full shadow"
-              title="Leave Room"
+              aria-label="Leave Room"
             >
               <PhoneOff className="h-4 w-4" />
             </Button>

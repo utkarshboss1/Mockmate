@@ -41,6 +41,12 @@ jobs:
       - name: Type Check Backend App
         run: npm run type-check --workspace=apps/backend
 
+      - name: Run Backend Tests
+        run: npm run test --workspace=apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mockmate?sslmode=disable
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/mockmate?sslmode=disable
+
       - name: Build Next.js Production App
         run: npm run build --workspace=apps/frontend
         env:

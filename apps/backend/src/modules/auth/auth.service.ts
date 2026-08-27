@@ -64,22 +64,34 @@ export class AuthService {
 
     const userId = signUpResult.user.id;
 
-    const updatedUser = await this.repository.updateUserRole(userId, input.role);
+    // Role assignment + profile stub must succeed together. If either fails,
+    // compensate by removing the partially-created account so we never leave
+    // a user stuck with the wrong role or without their interviewer profile.
+    try {
+      const updatedUser = await this.repository.updateUserRole(userId, input.role);
 
-    if (input.role === UserRole.INTERVIEWER) {
-      await this.repository.createInterviewerProfileStub(userId);
+      if (input.role === UserRole.INTERVIEWER) {
+        await this.repository.createInterviewerProfileStub(userId);
+      }
+
+      return {
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          status: updatedUser.status,
+        },
+        session: signUpResult.token,
+      };
+    } catch (err) {
+      try {
+        await this.repository.deleteUserById(userId);
+      } catch (_) {
+        console.error(`Failed to clean up partially created user ${userId}`);
+      }
+      throw err;
     }
-
-    return {
-      user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        status: updatedUser.status,
-      },
-      session: signUpResult.token,
-    };
   }
 
   async login(input: LoginInput, headers: Headers) {
@@ -87,12 +99,13 @@ export class AuthService {
       let existingUser = userStore.findUserByEmail(input.email);
 
       if (!existingUser) {
-        let role = (input as any).loginRole || UserRole.CANDIDATE;
-        if (input.email.includes('interviewer')) {
-          role = UserRole.INTERVIEWER;
-        } else if (input.email.includes('admin')) {
-          role = UserRole.ADMIN;
-        }
+        // Dev-only offline mode: role comes from explicit loginRole, never
+        // from substrings of the email address.
+        const requestedRole = (input as any).loginRole;
+        const role =
+          requestedRole === UserRole.ADMIN || requestedRole === UserRole.INTERVIEWER
+            ? requestedRole
+            : UserRole.CANDIDATE;
 
         // Format clean display name from email (e.g. "alex.smith@gmail.com" -> "Alex Smith")
         const usernamePart = input.email.split('@')[0];

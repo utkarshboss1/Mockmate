@@ -3,7 +3,7 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { UserRole, UserStatus } from '@interviewiq/shared';
+import { UserRole } from '@interviewiq/shared';
 
 export class AuthRepository {
   async findUserByEmail(email: string) {
@@ -18,6 +18,12 @@ export class AuthRepository {
       include: {
         interviewerProfile: true,
       },
+    });
+  }
+
+  async deleteUserById(id: string) {
+    return prisma.user.delete({
+      where: { id },
     });
   }
 

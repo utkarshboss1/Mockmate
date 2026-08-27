@@ -31,10 +31,18 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
 
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+# Production dependencies only — keeps devDependencies out of the image
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY apps/backend/package*.json ./apps/backend/
+RUN npm ci --omit=dev
+
+# Regenerate the Prisma Client against production-only node_modules
+COPY apps/backend/prisma ./apps/backend/prisma
+RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
+
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 
 EXPOSE 4000
 

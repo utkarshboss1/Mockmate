@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 import Editor from '@monaco-editor/react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -121,23 +121,34 @@ export function CodeEditor({ interviewId }: CodeEditorProps) {
   const [language, setLanguage] = useState<string>('python');
   const [code, setCode] = useState<string>(LANGUAGE_TEMPLATES.python);
   const [copied, setCopied] = useState(false);
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     if (!interviewId) return;
 
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+    let token: string | null = null;
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('access_token');
+      if (!token) {
+        try {
+          const auth = localStorage.getItem('interviewiq_auth');
+          if (auth) {
+            token = JSON.parse(auth).token ?? null;
+          }
+        } catch {}
+      }
+    }
+
     const socket = io(socketUrl, {
       path: '/socket.io',
       withCredentials: true,
+      auth: { token },
     });
     socketRef.current = socket;
 
-    socket.emit('join_room', {
-      interviewId,
-      userId: 'editor_user',
-      userName: 'Participant',
-    });
+    // Identity is derived from the authenticated session server-side
+    socket.emit('join_room', { interviewId });
 
     socket.on('code_updated', (data: { content: string; language?: string }) => {
       if (data.content !== undefined) setCode(data.content);

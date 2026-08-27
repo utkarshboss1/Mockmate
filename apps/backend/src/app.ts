@@ -21,11 +21,14 @@ import { interviewRouter } from './modules/interview/interview.routes';
 import { feedbackRouter } from './modules/feedback/feedback.routes';
 import { aiRouter } from './modules/ai/ai.routes';
 import { notificationRouter } from './modules/notification/notification.routes';
-import { reviewsRouter } from './modules/reviews/reviews.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 
 export function createApp() {
   const app = express();
+
+  // Trust the first proxy (load balancer / reverse proxy) so req.ip
+  // reflects real client IPs — required for correct rate limiting.
+  app.set('trust proxy', 1);
 
   // ─── Security Middleware ─────────────────────────────────
   app.use(
@@ -76,7 +79,6 @@ export function createApp() {
   app.use('/api/v1/payments', paymentsRouter);
   app.use('/api/v1/interviews', interviewRouter);
   app.use('/api/v1/feedback', feedbackRouter);
-  app.use('/api/v1/reviews', reviewsRouter);
   app.use('/api/v1/ai', aiRouter);
   app.use('/api/v1/notifications', notificationRouter);
   app.use('/api/v1/admin', adminRouter);

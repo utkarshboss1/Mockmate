@@ -4,8 +4,17 @@
 
 import { z } from 'zod';
 
-export const createCheckoutSessionSchema = z.object({
+export const createRazorpayOrderSchema = z.object({
   bookingId: z.string().min(1, 'Booking ID is required'),
 });
 
-export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSchema>;
+export type CreateRazorpayOrderInput = z.infer<typeof createRazorpayOrderSchema>;
+
+export const verifyRazorpayPaymentSchema = z.object({
+  bookingId: z.string().min(1, 'Booking ID is required'),
+  razorpayOrderId: z.string().min(1, 'Razorpay order ID is required'),
+  razorpayPaymentId: z.string().min(1, 'Razorpay payment ID is required'),
+  razorpaySignature: z.string().min(1, 'Razorpay signature is required'),
+});
+
+export type VerifyRazorpayPaymentInput = z.infer<typeof verifyRazorpayPaymentSchema>;

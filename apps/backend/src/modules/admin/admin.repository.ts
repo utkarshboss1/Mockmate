@@ -5,7 +5,6 @@
 import { prisma, isDbConnected } from '../../lib/prisma';
 import { AdminUserQueryInput } from './admin.validator';
 import { UserRole, UserStatus, BookingStatus } from '@interviewiq/shared';
-import { Prisma } from '@prisma/client';
 
 export class AdminRepository {
   async getAnalyticsOverview() {

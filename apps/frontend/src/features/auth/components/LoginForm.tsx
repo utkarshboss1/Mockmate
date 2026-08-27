@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -36,12 +36,6 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (roleParam === 'interviewer') {
-      setSelectedRole(UserRole.INTERVIEWER);
-    }
-  }, [roleParam]);
-
   const {
     register,
     handleSubmit,
@@ -67,8 +61,15 @@ export function LoginForm() {
 
       const effectiveRole = result?.user?.role || selectedRole;
 
-      if (redirectTo) {
-        router.push(redirectTo);
+      // Only allow same-site relative redirect targets (blocks open redirects
+      // to absolute URLs like https://evil.com)
+      const safeRedirect =
+        redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+          ? redirectTo
+          : null;
+
+      if (safeRedirect) {
+        router.push(safeRedirect);
       } else if (effectiveRole === UserRole.INTERVIEWER) {
         router.push('/interviewer/dashboard');
       } else if (effectiveRole === UserRole.ADMIN) {

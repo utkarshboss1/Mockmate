@@ -3,18 +3,32 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Bell, CheckCheck, Sparkles } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 
+interface NotificationRow {
+  id: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  metadata?: { linkUrl?: string } | null;
+}
+
 export function NotificationBell() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [open, setOpen] = useState(false);
 
   const fetchNotifications = async () => {
+    // Skip polling when logged out — otherwise every poll triggers a 401
+    // whose interceptor hard-redirects to /login, booting visitors from
+    // public pages.
+    if (typeof window === 'undefined') return;
+    const auth = localStorage.getItem('interviewiq_auth') ?? localStorage.getItem('access_token');
+    if (!auth) return;
+
     try {
       const res = await api.get('/notifications');
       setNotifications(res.data.data.notifications);
@@ -25,6 +39,7 @@ export function NotificationBell() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial fetch; setState fires asynchronously after the request resolves
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
     return () => clearInterval(interval);
@@ -42,7 +57,10 @@ export function NotificationBell() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="relative h-9 w-9 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+      <PopoverTrigger
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+        className="relative h-9 w-9 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
@@ -83,15 +101,21 @@ export function NotificationBell() {
                   <span className="text-[10px] text-muted-foreground">{formatDateTime(n.createdAt)}</span>
                 </div>
                 <p className="text-muted-foreground leading-snug">{n.message}</p>
-                {n.metadata?.linkUrl && (
-                  <Link
-                    href={n.metadata.linkUrl}
-                    onClick={() => setOpen(false)}
-                    className="inline-block text-[11px] text-primary font-medium hover:underline pt-1"
-                  >
-                    View Details →
-                  </Link>
-                )}
+                {(() => {
+                  const rawLink: string | undefined = n.metadata?.linkUrl;
+                  // Only allow same-site relative paths — blocks javascript:/https: injection
+                  const safeLink =
+                    rawLink && rawLink.startsWith('/') && !rawLink.startsWith('//') ? rawLink : null;
+                  return safeLink ? (
+                    <Link
+                      href={safeLink}
+                      onClick={() => setOpen(false)}
+                      className="inline-block text-[11px] text-primary font-medium hover:underline pt-1"
+                    >
+                      View Details →
+                    </Link>
+                  ) : null;
+                })()}
               </div>
             ))
           )}

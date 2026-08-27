@@ -1,16 +1,48 @@
 'use client';
 
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BookingStatusBadge } from './BookingStatusBadge';
-import { Calendar, Clock, Video, FileText, XCircle, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Video, FileText, XCircle } from 'lucide-react';
 import { formatCurrency, formatDateTime, getInitials } from '@/lib/utils';
-import { BookingStatus, InterviewType } from '@interviewiq/shared';
+import { BookingStatus } from '@interviewiq/shared';
+
+interface RazorpayOrder {
+  orderId: string;
+  amount: number;
+  currency?: string;
+  keyId: string;
+}
+
+interface RazorpayHandlerResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export interface BookingLike {
+  id: string;
+  status: string;
+  scheduledAt: string;
+  interviewType: string;
+  notes?: string | null;
+  totalAmountCents: number;
+  interviewerPayoutCents?: number;
+  candidate?: { id?: string; name?: string; avatar?: string | null } | null;
+  interviewerProfile?: {
+    id?: string;
+    user?: { id?: string; name?: string; avatar?: string | null };
+  } | null;
+  payment?: { status?: string } | null;
+  interview?: { id?: string } | null;
+  feedback?: { id?: string } | null;
+}
 
 interface BookingCardProps {
-  booking: any;
+  booking: BookingLike;
   userRole: 'candidate' | 'interviewer';
   onCancel?: (bookingId: string) => void;
 }
@@ -23,6 +55,7 @@ export function BookingCard({ booking, userRole, onCancel }: BookingCardProps) {
 
   const isUpcoming =
     booking.status === BookingStatus.CONFIRMED &&
+    // eslint-disable-next-line react-hooks/purity -- "now" legitimately depends on render time
     new Date(booking.scheduledAt).getTime() > Date.now();
 
   return (
@@ -32,7 +65,7 @@ export function BookingCard({ booking, userRole, onCancel }: BookingCardProps) {
           <Calendar className="h-3.5 w-3.5" />
           {formatDateTime(booking.scheduledAt)}
         </div>
-        <BookingStatusBadge status={booking.status} />
+        <BookingStatusBadge status={booking.status as BookingStatus} />
       </CardHeader>
 
       <CardContent className="p-4 space-y-4">
@@ -59,7 +92,11 @@ export function BookingCard({ booking, userRole, onCancel }: BookingCardProps) {
             <span>60 Minutes Session</span>
           </div>
           <span className="font-bold text-foreground">
-            {formatCurrency(userRole === 'candidate' ? booking.totalAmountCents : booking.interviewerPayoutCents)}
+            {formatCurrency(
+              userRole === 'candidate'
+                ? booking.totalAmountCents
+                : (booking.interviewerPayoutCents ?? booking.totalAmountCents),
+            )}
           </span>
         </div>
 
@@ -77,15 +114,49 @@ export function BookingCard({ booking, userRole, onCancel }: BookingCardProps) {
           <Button
             size="sm"
             onClick={async () => {
+              const { api, getErrorMessage } = await import('@/lib/api');
               try {
-                const res = await (await import('@/lib/api')).api.post('/payments/create-checkout-session', {
+                const res = await api.post('/payments/create-razorpay-order', {
                   bookingId: booking.id,
                 });
-                if (res.data.data.checkoutUrl) {
-                  window.location.href = res.data.data.checkoutUrl;
+                const { orderId, amount, currency, keyId }: RazorpayOrder = res.data.data;
+
+                if (typeof window !== 'undefined' && window.Razorpay && keyId && keyId !== 'rzp_test_mock_key') {
+                  const rzp = new window.Razorpay({
+                    key: keyId,
+                    amount,
+                    currency: currency || 'INR',
+                    name: 'MockMate',
+                    description: 'Mock Interview Session',
+                    order_id: orderId,
+                    handler: async function (response: RazorpayHandlerResponse) {
+                      try {
+                        await api.post('/payments/verify-razorpay-payment', {
+                          bookingId: booking.id,
+                          razorpayOrderId: response.razorpay_order_id,
+                          razorpayPaymentId: response.razorpay_payment_id,
+                          razorpaySignature: response.razorpay_signature,
+                        });
+                        window.location.reload();
+                      } catch (err) {
+                        toast.error(getErrorMessage(err));
+                      }
+                    },
+                    theme: { color: '#3B82F6' },
+                  });
+                  rzp.open();
+                } else if (keyId === 'rzp_test_mock_key') {
+                  // Mock mode (dev only): server accepts mock order verification
+                  await api.post('/payments/verify-razorpay-payment', {
+                    bookingId: booking.id,
+                    razorpayOrderId: orderId,
+                    razorpayPaymentId: `pay_mock_${Date.now()}`,
+                    razorpaySignature: '',
+                  });
+                  window.location.reload();
                 }
               } catch (err) {
-                alert((await import('@/lib/api')).getErrorMessage(err));
+                toast.error(getErrorMessage(err));
               }
             }}
             className="gap-1.5 font-semibold text-xs bg-amber-500 hover:bg-amber-600 text-black"

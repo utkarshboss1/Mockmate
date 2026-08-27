@@ -4,7 +4,7 @@
 
 import { prisma, isDbConnected } from '../../lib/prisma';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
-import { BookingStatus, UserRole } from '@interviewiq/shared';
+import { BookingStatus } from '@interviewiq/shared';
 import { Prisma } from '@prisma/client';
 
 const SAMPLE_BOOKINGS = [
@@ -72,53 +72,63 @@ export class BookingRepository {
     }
 
     const requestedStart = new Date(input.scheduledAt);
-    const requestedEnd = new Date(requestedStart.getTime() + 60 * 60 * 1000);
+    const DURATION_MINUTES = 60;
+    const requestedEnd = new Date(requestedStart.getTime() + DURATION_MINUTES * 60 * 1000);
 
-    return prisma.$transaction(async (tx: any) => {
-      // 1. Check for overlapping non-cancelled bookings
-      const activeBookings = await tx.booking.findMany({
-        where: {
-          interviewerProfileId: input.interviewerProfileId,
-          status: {
-            notIn: [BookingStatus.CANCELLED_BY_CANDIDATE, BookingStatus.CANCELLED_BY_INTERVIEWER],
+    // Serializable isolation prevents the classic check-then-insert race where
+    // two concurrent bookings for the same slot both pass the overlap check.
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Check for overlapping non-cancelled bookings.
+        // Bounded by the requested time window — never loads all bookings.
+        const conflictingBookings = await tx.booking.findMany({
+          where: {
+            interviewerProfileId: input.interviewerProfileId,
+            status: {
+              notIn: [BookingStatus.CANCELLED_BY_CANDIDATE, BookingStatus.CANCELLED_BY_INTERVIEWER],
+            },
+            // Pre-filter in the DB to bookings that could possibly overlap
+            scheduledAt: { lt: requestedEnd },
           },
-        },
-      });
+          select: { scheduledAt: true, durationMinutes: true },
+        });
 
-      const hasConflict = activeBookings.some((b: any) => {
-        const bStart = new Date(b.scheduledAt).getTime();
-        const bEnd = bStart + (b.durationMinutes || 60) * 60 * 1000;
-        return requestedStart.getTime() < bEnd && requestedEnd.getTime() > bStart;
-      });
+        const hasConflict = conflictingBookings.some((b) => {
+          const bStart = new Date(b.scheduledAt).getTime();
+          const bEnd = bStart + (b.durationMinutes || 60) * 60 * 1000;
+          return requestedStart.getTime() < bEnd && requestedEnd.getTime() > bStart;
+        });
 
-      if (hasConflict) {
-        throw new Error('SLOT_ALREADY_BOOKED');
-      }
+        if (hasConflict) {
+          throw new Error('SLOT_ALREADY_BOOKED');
+        }
 
-      // 2. Create the booking record
-      return tx.booking.create({
-        data: {
-          candidateId,
-          interviewerProfileId: input.interviewerProfileId,
-          scheduledAt: requestedStart,
-          durationMinutes: 60,
-          interviewType: input.interviewType,
-          status: BookingStatus.PENDING,
-          totalAmountCents: financials.totalAmountCents,
-          platformFeeCents: financials.platformFeeCents,
-          interviewerPayoutCents: financials.interviewerPayoutCents,
-          notes: input.notes || null,
-        },
-        include: {
-          candidate: { select: { id: true, name: true, email: true, avatar: true } },
-          interviewerProfile: {
-            include: {
-              user: { select: { id: true, name: true, email: true, avatar: true } },
+        // 2. Create the booking record
+        return tx.booking.create({
+          data: {
+            candidateId,
+            interviewerProfileId: input.interviewerProfileId,
+            scheduledAt: requestedStart,
+            durationMinutes: DURATION_MINUTES,
+            interviewType: input.interviewType,
+            status: BookingStatus.PENDING,
+            totalAmountCents: financials.totalAmountCents,
+            platformFeeCents: financials.platformFeeCents,
+            interviewerPayoutCents: financials.interviewerPayoutCents,
+            notes: input.notes || null,
+          },
+          include: {
+            candidate: { select: { id: true, name: true, email: true, avatar: true } },
+            interviewerProfile: {
+              include: {
+                user: { select: { id: true, name: true, email: true, avatar: true } },
+              },
             },
           },
-        },
-      });
-    });
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   async getCandidateBookings(candidateId: string, query: GetBookingsQueryInput) {

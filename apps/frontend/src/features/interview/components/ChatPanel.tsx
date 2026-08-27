@@ -5,9 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, User } from 'lucide-react';
-import { formatTime } from '@/lib/utils';
+import { MessageSquare, Send } from 'lucide-react';
 
 interface ChatMessage {
   id?: string;
@@ -41,20 +39,39 @@ export function ChatPanel({ interviewId, currentUserId, currentUserName }: ChatP
     }
     fetchChatHistory();
 
-    // 2. Connect Socket.IO client
+    // 2. Connect Socket.IO client (authenticated handshake)
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+    let token: string | null = null;
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('access_token');
+      if (!token) {
+        try {
+          const auth = localStorage.getItem('interviewiq_auth');
+          if (auth) {
+            token = JSON.parse(auth).token ?? null;
+          }
+        } catch {}
+      }
+    }
+
     const socket = io(socketUrl, {
       path: '/socket.io',
       withCredentials: true,
+      auth: { token },
     });
 
     socketRef.current = socket;
 
-    socket.emit('join_room', {
-      interviewId,
-      userId: currentUserId,
-      userName: currentUserName,
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection failed:', err.message);
     });
+
+    socket.on('room_error', (err: { message?: string }) => {
+      console.error('Room join rejected:', err?.message);
+    });
+
+    // Identity is derived from the authenticated session server-side
+    socket.emit('join_room', { interviewId });
 
     socket.on('receive_message', (newMessage: ChatMessage) => {
       setMessages((prev) => [...prev, newMessage]);
@@ -76,8 +93,6 @@ export function ChatPanel({ interviewId, currentUserId, currentUserName }: ChatP
 
     socketRef.current.emit('send_message', {
       interviewId,
-      senderId: currentUserId,
-      senderName: currentUserName,
       content: trimmed,
     });
 
@@ -91,7 +106,12 @@ export function ChatPanel({ interviewId, currentUserId, currentUserName }: ChatP
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 p-3 overflow-y-auto space-y-3 min-h-[200px]">
+      <div
+        className="flex-1 p-3 overflow-y-auto space-y-3 min-h-[200px]"
+        role="log"
+        aria-live="polite"
+        aria-label="Interview chat messages"
+      >
         {messages.length === 0 ? (
           <p className="text-xs text-muted-foreground italic text-center py-4">
             No messages yet. Say hello!
@@ -127,11 +147,12 @@ export function ChatPanel({ interviewId, currentUserId, currentUserName }: ChatP
       <form onSubmit={handleSendMessage} className="p-2 border-t border-border/40 flex gap-2">
         <Input
           placeholder="Type message..."
+          aria-label="Type a message"
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           className="h-8 text-xs"
         />
-        <Button type="submit" size="icon" className="h-8 w-8 shrink-0">
+        <Button type="submit" size="icon" className="h-8 w-8 shrink-0" aria-label="Send message">
           <Send className="h-3.5 w-3.5" />
         </Button>
       </form>

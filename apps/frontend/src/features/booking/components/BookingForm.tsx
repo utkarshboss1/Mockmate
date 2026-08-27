@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { api, getErrorMessage } from '@/lib/api';
 import { SlotPicker } from '@/features/availability/components/SlotPicker';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,19 @@ interface BookingFormProps {
       avatar: string | null;
     };
   };
+}
+
+interface RazorpayOrder {
+  orderId: string;
+  amount: number;
+  currency?: string;
+  keyId: string;
+}
+
+interface RazorpayHandlerResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
 }
 
 export function BookingForm({ interviewer }: BookingFormProps) {
@@ -63,9 +77,9 @@ export function BookingForm({ interviewer }: BookingFormProps) {
           bookingId: booking.id,
         });
 
-        const { orderId, amount, currency, keyId } = orderRes.data.data;
+        const { orderId, amount, currency, keyId }: RazorpayOrder = orderRes.data.data;
 
-        if (typeof window !== 'undefined' && (window as any).Razorpay && keyId && keyId !== 'rzp_test_mock_key') {
+        if (typeof window !== 'undefined' && window.Razorpay && keyId && keyId !== 'rzp_test_mock_key') {
           const options = {
             key: keyId,
             amount: amount,
@@ -73,14 +87,23 @@ export function BookingForm({ interviewer }: BookingFormProps) {
             name: 'MockMate',
             description: `1-on-1 ${interviewType} Mock Interview`,
             order_id: orderId,
-            handler: async function (response: any) {
-              await api.post('/payments/verify-razorpay-payment', {
-                bookingId: booking.id,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              router.push(`/dashboard?payment=success&bookingId=${booking.id}`);
+            handler: async function (response: RazorpayHandlerResponse) {
+              try {
+                await api.post('/payments/verify-razorpay-payment', {
+                  bookingId: booking.id,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+                router.push(`/dashboard?payment=success&bookingId=${booking.id}`);
+              } catch (verifyErr) {
+                // Payment captured but verification failed — surface it
+                // instead of silently swallowing the rejection.
+                toast.error(getErrorMessage(verifyErr));
+                setError(
+                  'Payment could not be verified. Please contact support with your payment reference before retrying.',
+                );
+              }
             },
             prefill: {
               name: user?.name,
@@ -91,7 +114,7 @@ export function BookingForm({ interviewer }: BookingFormProps) {
             },
           };
 
-          const rzp = new (window as any).Razorpay(options);
+          const rzp = new window.Razorpay(options);
           rzp.open();
           return;
         }

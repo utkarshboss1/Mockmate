@@ -5,7 +5,6 @@
 import { bookingRepository, BookingRepository } from './booking.repository';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
 import { errors } from '../../middleware/error.middleware';
-import { env } from '../../config/env';
 import { BookingStatus, UserRole } from '@interviewiq/shared';
 import { buildPaginationMeta } from '../../types';
 
@@ -35,7 +34,9 @@ export class BookingService {
         interviewerPayoutCents,
       });
     } catch (err: any) {
-      if (err.message === 'SLOT_ALREADY_BOOKED') {
+      // SLOT_ALREADY_BOOKED — our explicit conflict error.
+      // P2034 — Prisma serialization failure from the concurrent-transaction guard.
+      if (err.message === 'SLOT_ALREADY_BOOKED' || err?.code === 'P2034') {
         throw errors.conflict('This time slot has already been booked by another candidate');
       }
       throw err;
@@ -95,11 +96,12 @@ export class BookingService {
       throw errors.badRequest('Completed interviews cannot be cancelled');
     }
 
+    const cancelledBy = isCandidate ? 'candidate' : 'interviewer';
     const newStatus = isCandidate
       ? BookingStatus.CANCELLED_BY_CANDIDATE
       : BookingStatus.CANCELLED_BY_INTERVIEWER;
 
-    const cancellationNote = `Cancelled by ${isCandidate ? 'candidate' : 'interviewer'}: ${reason}`;
+    const cancellationNote = `Cancelled by ${isAdmin && !isCandidate && !isInterviewer ? 'admin' : cancelledBy}: ${reason}`;
 
     return this.repository.updateBookingStatus(bookingId, newStatus, cancellationNote);
   }

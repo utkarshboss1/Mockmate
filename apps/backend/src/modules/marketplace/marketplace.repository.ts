@@ -4,7 +4,6 @@
 
 import { prisma, isDbConnected } from '../../lib/prisma';
 import { MarketplaceQueryInput } from './marketplace.validator';
-import { Prisma } from '@prisma/client';
 
 // Sample mock data returned when database is connecting or unseeded
 const SAMPLE_INTERVIEWERS = [
@@ -189,7 +188,7 @@ export class MarketplaceRepository {
           availabilitySlots: { where: { isActive: true } },
         },
       });
-    } catch (err) {
+    } catch {
       return null;
     }
   }

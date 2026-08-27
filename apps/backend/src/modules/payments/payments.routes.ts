@@ -6,27 +6,25 @@ import { Router } from 'express';
 import { paymentsController } from './payments.controller';
 import { requireAuth } from '../../middleware/auth.middleware';
 import { validate } from '../../middleware/validate';
-import { createCheckoutSessionSchema } from './payments.validator';
+import {
+  createRazorpayOrderSchema,
+  verifyRazorpayPaymentSchema,
+} from './payments.validator';
 
 const router = Router();
 
 // Protected routes requiring authentication
 router.post(
-  '/create-checkout-session',
-  requireAuth,
-  validate(createCheckoutSessionSchema),
-  (req, res, next) => paymentsController.createCheckoutSession(req, res, next),
-);
-
-router.post(
   '/create-razorpay-order',
   requireAuth,
+  validate(createRazorpayOrderSchema),
   (req, res, next) => paymentsController.createRazorpayOrder(req, res, next),
 );
 
 router.post(
   '/verify-razorpay-payment',
   requireAuth,
+  validate(verifyRazorpayPaymentSchema),
   (req, res, next) => paymentsController.verifyRazorpayPayment(req, res, next),
 );
 
