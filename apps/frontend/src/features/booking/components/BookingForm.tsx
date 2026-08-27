@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { SlotPicker } from './SlotPicker';
+import { SlotPicker } from '@/features/availability/components/SlotPicker';
 import { Calendar, ShieldCheck, ArrowRight, Loader2, AlertCircle, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 

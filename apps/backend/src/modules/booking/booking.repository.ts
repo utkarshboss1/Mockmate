@@ -6,6 +6,8 @@ import { prisma, isDbConnected } from '../../lib/prisma';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
 import { BookingStatus } from '@interviewiq/shared';
 import { Prisma } from '@prisma/client';
+import { bookingStore } from '../../lib/bookingStore';
+import { userStore } from '../../lib/userStore';
 
 const SAMPLE_BOOKINGS = [
   {
@@ -68,7 +70,34 @@ export class BookingRepository {
     },
   ) {
     if (!isDbConnected()) {
-      return SAMPLE_BOOKINGS[0] as any;
+      const user = userStore.findUserById(candidateId);
+      const stored = bookingStore.saveBooking({
+        id: `b_${Date.now()}`,
+        candidateId,
+        interviewerProfileId: input.interviewerProfileId,
+        scheduledAt: new Date(input.scheduledAt),
+        durationMinutes: 60,
+        interviewType: input.interviewType,
+        status: BookingStatus.PENDING,
+        totalAmountCents: financials.totalAmountCents,
+        platformFeeCents: financials.platformFeeCents,
+        interviewerPayoutCents: financials.interviewerPayoutCents,
+        notes: input.notes || null,
+        candidate: {
+          id: candidateId,
+          name: user?.name || 'Candidate',
+          email: user?.email || 'candidate@mock.com',
+          avatar: null,
+        },
+        interviewerProfile: {
+          id: input.interviewerProfileId,
+          userId: 'int_u_1',
+          user: { id: 'int_u_1', name: 'Interviewer', email: 'interviewer@mock.com', avatar: null },
+        },
+        payment: null,
+        interview: null,
+      });
+      return stored as any;
     }
 
     const requestedStart = new Date(input.scheduledAt);
@@ -201,7 +230,9 @@ export class BookingRepository {
 
   async getBookingById(id: string) {
     if (!isDbConnected()) {
-      return SAMPLE_BOOKINGS[0] as any;
+      const stored = bookingStore.findBookingById(id);
+      if (stored) return stored as any;
+      return SAMPLE_BOOKINGS.find((b) => b.id === id) as any || ({ ...SAMPLE_BOOKINGS[0], id } as any);
     }
 
     return prisma.booking.findUnique({

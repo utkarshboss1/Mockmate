@@ -4,10 +4,15 @@
 
 import { prisma, isDbConnected } from '../../lib/prisma';
 import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
+import { bookingStore } from '../../lib/bookingStore';
 
 export class PaymentsRepository {
   async getBookingWithCandidateAndInterviewer(bookingId: string) {
     if (!isDbConnected()) {
+      const stored = bookingStore.findBookingById(bookingId);
+      if (stored) {
+        return stored as any;
+      }
       return {
         id: bookingId,
         candidateId: 'candidate_1',
