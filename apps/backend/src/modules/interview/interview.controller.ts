@@ -37,6 +37,33 @@ export class InterviewController {
       next(error);
     }
   }
+
+  async getMessages(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const messages = await interviewService.getInterviewMessages(
+        req.params.id,
+        req.user!.id,
+      );
+      res.json(successResponse(messages));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async saveSnapshot(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { content, language } = req.body ?? {};
+      const snapshot = await interviewService.saveCodeSnapshot(
+        req.params.id,
+        req.user!.id,
+        content,
+        language,
+      );
+      res.json(successResponse(snapshot));
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const interviewController = new InterviewController();

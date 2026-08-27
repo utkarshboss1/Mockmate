@@ -37,6 +37,34 @@ export class InterviewService {
       throw errors.forbidden('You are not authorized to join this interview room');
     }
 
+    const scheduledAt = interview.booking.scheduledAt;
+    if (scheduledAt) {
+      const scheduledTime = new Date(scheduledAt).getTime();
+      const now = Date.now();
+      const diffMinutes = (scheduledTime - now) / (1000 * 60);
+
+      // If joined more than 10 minutes before scheduled start time
+      if (diffMinutes > 10) {
+        return {
+          tooEarly: true,
+          scheduledAt,
+          minutesRemaining: Math.ceil(diffMinutes),
+          message: `This interview is scheduled for ${new Date(scheduledAt).toLocaleString()}. You can join 10 minutes prior to start time.`,
+          interview: {
+            id: interview.id,
+            status: interview.status,
+            booking: {
+              id: interview.booking.id,
+              scheduledAt: interview.booking.scheduledAt,
+              interviewType: interview.booking.interviewType,
+              candidate: interview.booking.candidate,
+              interviewer: interview.booking.interviewerProfile.user,
+            },
+          },
+        };
+      }
+    }
+
     // Generate LiveKit JWT token
     const token = await generateLiveKitToken({
       roomName: interview.roomName,
@@ -51,12 +79,14 @@ export class InterviewService {
 
     return {
       token,
+      tooEarly: false,
       roomName: interview.roomName,
       interview: {
         id: interview.id,
         status: interview.status,
         booking: {
           id: interview.booking.id,
+          scheduledAt: interview.booking.scheduledAt,
           interviewType: interview.booking.interviewType,
           candidate: interview.booking.candidate,
           interviewer: interview.booking.interviewerProfile.user,

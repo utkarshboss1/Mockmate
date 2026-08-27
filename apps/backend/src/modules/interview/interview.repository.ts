@@ -13,6 +13,7 @@ const SAMPLE_INTERVIEW = {
   booking: {
     id: 'b_1',
     candidateId: 'candidate_1',
+    scheduledAt: new Date().toISOString(),
     interviewType: 'TECHNICAL_CODING',
     candidate: { id: 'candidate_1', name: 'Mock Candidate', email: 'candidate@mock.com', avatar: null },
     interviewerProfile: {
@@ -65,6 +66,31 @@ export class InterviewRepository {
     return prisma.interview.update({
       where: { id },
       data,
+    });
+  }
+
+  async getMessagesByInterviewId(interviewId: string) {
+    if (!isDbConnected()) return [];
+
+    return prisma.message.findMany({
+      where: { interviewId },
+      orderBy: { sentAt: 'asc' },
+    });
+  }
+
+  async upsertCodeSnapshot(
+    interviewId: string,
+    content: string,
+    language?: string,
+  ) {
+    if (!isDbConnected()) {
+      return { interviewId, content, language: language || 'javascript' } as any;
+    }
+
+    return prisma.codeSnapshot.upsert({
+      where: { interviewId },
+      create: { interviewId, content, language: language || 'javascript' },
+      update: { content, language: language || 'javascript' },
     });
   }
 }

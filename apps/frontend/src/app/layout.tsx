@@ -3,6 +3,7 @@ import Script from 'next/script';
 import { Space_Grotesk, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { Toaster } from '@/components/ui/sonner';
+import { NavigationWrapper } from '@/components/NavigationWrapper';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -79,9 +80,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground tracking-tight selection:bg-primary/25 selection:text-foreground`}>
+      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground tracking-tight selection:bg-primary/25 selection:text-foreground flex flex-col min-h-screen`}>
         <AuthProvider>
-          {children}
+          <NavigationWrapper />
+          <div className="flex-1">
+            {children}
+          </div>
         </AuthProvider>
         <Toaster position="top-center" richColors />
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />

@@ -6,27 +6,39 @@ import { api } from '@/lib/api';
 import { BookingCard } from '@/features/booking/components/BookingCard';
 import { PrepAdvisorWidget } from '@/features/ai/components/PrepAdvisorWidget';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Video, Search, Sparkles, AlertCircle } from 'lucide-react';
+import { Calendar, Search, AlertCircle } from 'lucide-react';
+import type { BookingLike } from '@/features/booking/components/BookingCard';
 
 export default function CandidateDashboardPage() {
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<BookingLike[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchBookings() {
       try {
         setLoading(true);
-        const res = await api.get('/bookings/candidate?limit=5');
+        setError(null);
+        const res = await api.get('/bookings/candidate?limit=5', { signal: controller.signal });
         setBookings(res.data.data);
       } catch (err) {
-        console.error('Failed to load candidate bookings:', err);
+        if (!controller.signal.aborted) {
+          setError('Failed to load your bookings. Please try again.');
+          console.error('Failed to load candidate bookings:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
     fetchBookings();
+
+    return () => controller.abort();
   }, []);
 
   const upcomingBookings = bookings.filter(
@@ -61,7 +73,14 @@ export default function CandidateDashboardPage() {
           </Button>
         </div>
 
-        {loading ? (
+        {error ? (
+          <Card className="border-destructive/40 bg-destructive/5 p-8 text-center space-y-3">
+            <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+            <h3 className="font-semibold text-base">Couldn&apos;t load your sessions</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">{error}</p>
+            <Button size="sm" onClick={() => window.location.reload()}>Retry</Button>
+          </Card>
+        ) : loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <Skeleton className="h-48 rounded-xl" />
             <Skeleton className="h-48 rounded-xl" />

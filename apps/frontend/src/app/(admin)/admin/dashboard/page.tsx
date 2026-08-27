@@ -2,48 +2,83 @@
 
 import { useState, useEffect } from 'react';
 import { api, getErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Users, IndianRupee, Award, ShieldAlert, Search, CheckCircle2, UserX } from 'lucide-react';
+import { Users, IndianRupee, Award, ShieldAlert, Search, CheckCircle2, UserX, AlertCircle } from 'lucide-react';
 import { UserStatus } from '@interviewiq/shared';
 
+interface AdminAnalytics {
+  totalPlatformRevenuePaise?: number;
+  totalGrossVolumePaise?: number;
+  totalUsers?: number;
+  totalCandidates?: number;
+  totalInterviewers?: number;
+  completedBookings?: number;
+  totalBookings?: number;
+}
+
+interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt: string;
+}
+
 export default function AdminDashboardPage() {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchAdminData() {
       try {
         setLoading(true);
+        setError(null);
         const [analyticsRes, usersRes] = await Promise.all([
-          api.get('/admin/analytics'),
-          api.get('/admin/users', { params: { search } }),
+          api.get('/admin/analytics', { signal: controller.signal }),
+          api.get('/admin/users', { params: { search: debouncedSearch }, signal: controller.signal }),
         ]);
 
         setAnalytics(analyticsRes.data.data);
         setUsers(usersRes.data.data);
       } catch (err) {
-        console.error('Failed to load admin analytics:', err);
+        if (!controller.signal.aborted) {
+          setError(getErrorMessage(err));
+          console.error('Failed to load admin analytics:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
     fetchAdminData();
-  }, [search]);
+
+    return () => controller.abort();
+  }, [debouncedSearch]);
 
   const toggleUserStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'SUSPENDED' ? UserStatus.ACTIVE : UserStatus.SUSPENDED;
     try {
       await api.patch(`/admin/users/${userId}/status`, { status: newStatus });
       setUsers(users.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
+      toast.success(`User ${newStatus === UserStatus.ACTIVE ? 'reactivated' : 'suspended'}`);
     } catch (err) {
-      alert(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -60,7 +95,14 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Metrics Cards */}
-      {loading ? (
+      {error ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <span>Failed to load admin data: {error}</span>
+          </AlertDescription>
+        </Alert>
+      ) : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <Skeleton className="h-28 rounded-xl" />
           <Skeleton className="h-28 rounded-xl" />
@@ -129,6 +171,7 @@ export default function AdminDashboardPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search by name or email..."
+              aria-label="Search users by name or email"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-8 text-xs bg-muted/30"

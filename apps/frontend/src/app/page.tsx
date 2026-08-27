@@ -59,8 +59,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <NavHeader />
-
       {/* ═══════════════════════════════════════════════════════════
           HERO — Full-viewport, bold editorial typography
           ═══════════════════════════════════════════════════════════ */}

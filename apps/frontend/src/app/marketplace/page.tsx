@@ -10,8 +10,32 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExperienceLevel } from '@interviewiq/shared';
 import { NavHeader } from '@/components/NavHeader';
-import Link from 'next/link';
-import { Sparkles, ChevronLeft, ChevronRight, SearchX, Code2 } from 'lucide-react';
+import { Sparkles, ChevronLeft, ChevronRight, SearchX } from 'lucide-react';
+
+interface InterviewerSummary {
+  id: string;
+  user: { id?: string; name: string; avatar: string | null };
+  headline: string;
+  company: string | null;
+  jobTitle: string | null;
+  yearsOfExperience: number;
+  pricePerHour: number;
+  averageRating: number;
+  totalReviews: number;
+  isVerified: boolean;
+  tags: { id: string; name: string; slug: string }[];
+}
+
+interface MarketplaceResponse {
+  data: InterviewerSummary[];
+  meta?: {
+    total: number;
+    page: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
 
 export default function MarketplacePage() {
   const [search, setSearch] = useState('');
@@ -23,30 +47,51 @@ export default function MarketplacePage() {
   const [sort, setSort] = useState('rating_desc');
   const [page, setPage] = useState(1);
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<MarketplaceResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchInterviewers() {
       try {
         setLoading(true);
-        const params: Record<string, any> = { page, limit: 12, sort };
+        setError(null);
+        const params: Record<string, string | number> = { page, limit: 12, sort };
         if (debouncedSearch) params.search = debouncedSearch;
         if (experienceLevel) params.experienceLevel = experienceLevel;
         if (minPrice) params.minPriceRupees = minPrice;
         if (maxPrice) params.maxPriceRupees = maxPrice;
 
-        const res = await api.get('/marketplace/interviewers', { params });
+        const res = await api.get<MarketplaceResponse>('/marketplace/interviewers', {
+          params,
+          signal: controller.signal,
+        });
         setData(res.data);
       } catch (err) {
-        console.error('Failed to fetch marketplace:', err);
+        const canceled =
+          controller.signal.aborted || (err as { code?: string } | null)?.code === 'ERR_CANCELED';
+        if (!canceled) {
+          setError('Failed to load interviewers. Please try again.');
+          console.error('Failed to fetch marketplace:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchInterviewers();
+
+    return () => controller.abort();
   }, [debouncedSearch, experienceLevel, minPrice, maxPrice, sort, page]);
+
+  const goToPage = (newPage: number | ((p: number) => number)) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const resetFilters = () => {
     setSearch('');
@@ -59,9 +104,6 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* ─── Navigation Header ───────────────────────────────────── */}
-      <NavHeader />
-
       <div className="container max-w-7xl py-10 px-4 space-y-8 flex-1">
       {/* Hero Banner */}
       <div className="text-center space-y-3 max-w-3xl mx-auto">
@@ -103,7 +145,14 @@ export default function MarketplacePage() {
 
         {/* Interviewers Grid */}
         <main className="lg:col-span-3 space-y-6">
-          {loading ? (
+          {error ? (
+            <div className="text-center py-16 space-y-4 border border-dashed rounded-xl p-8 bg-card/40">
+              <SearchX className="h-12 w-12 text-destructive mx-auto" />
+              <h3 className="text-lg font-semibold">Something went wrong</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">{error}</p>
+              <Button variant="outline" onClick={() => setPage(1)}>Retry</Button>
+            </div>
+          ) : loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-64 rounded-xl" />
@@ -121,7 +170,7 @@ export default function MarketplacePage() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {data?.data?.map((interviewer: any) => (
+                {data?.data?.map((interviewer) => (
                   <InterviewerCard
                     key={interviewer.id}
                     id={interviewer.id}
@@ -150,7 +199,7 @@ export default function MarketplacePage() {
                       variant="outline"
                       size="sm"
                       disabled={!data.meta.hasPrev}
-                      onClick={() => setPage((p) => p - 1)}
+                      onClick={() => goToPage((p) => p - 1)}
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                     </Button>
@@ -158,7 +207,7 @@ export default function MarketplacePage() {
                       variant="outline"
                       size="sm"
                       disabled={!data.meta.hasNext}
-                      onClick={() => setPage((p) => p + 1)}
+                      onClick={() => goToPage((p) => p + 1)}
                     >
                       Next <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
