@@ -76,6 +76,17 @@ export function NavHeader({ showMarketplaceLink = true }: NavHeaderProps) {
               </Link>
             )}
 
+            <Link
+              href="/pricing"
+              className={`transition-colors duration-200 cursor-pointer ${
+                isActive('/pricing')
+                  ? 'text-primary font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Pricing
+            </Link>
+
             {user?.role === 'INTERVIEWER' && (
               <>
                 <Link
@@ -271,6 +282,14 @@ export function NavHeader({ showMarketplaceLink = true }: NavHeaderProps) {
               className="py-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
             >
               Browse Interviewers
+            </Link>
+
+            <Link
+              href="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
+            >
+              Pricing & Plans
             </Link>
 
             {user?.role === 'INTERVIEWER' && (
