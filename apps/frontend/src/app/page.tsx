@@ -103,7 +103,7 @@ export default function HomePage() {
         {/* Scroll indicator — bottom right */}
         <div className="absolute bottom-10 right-8 md:right-16 flex items-center gap-2 text-[11px] font-medium tracking-[0.15em] uppercase text-muted-foreground reveal reveal-delay-4">
           <span>Scroll</span>
-          <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
+          <ArrowDown className="h-3.5 w-3.5 opacity-70 transition-transform duration-300 group-hover:translate-y-0.5" />
         </div>
       </section>
 

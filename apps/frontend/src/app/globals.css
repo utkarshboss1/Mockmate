@@ -173,9 +173,9 @@
 
 /* ─── Custom Utilities ────────────────────────────────────── */
 @layer utilities {
-  /* Coral gradient text highlight */
+  /* Solid primary text highlight */
   .text-gradient {
-    @apply bg-gradient-to-r from-[#F97316] to-[#FB923C] bg-clip-text text-transparent;
+    @apply text-primary font-semibold;
   }
 
   /* Subtle glass card */
