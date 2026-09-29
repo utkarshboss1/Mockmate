@@ -77,7 +77,7 @@ const SAMPLE_INTERVIEWERS = [
 
 export class MarketplaceRepository {
   async searchInterviewers(input: MarketplaceQueryInput) {
-    const { search, experienceLevel, tags, minPriceRupees, maxPriceRupees, sort, page, limit } = input;
+    const { search, experienceLevel, tags, minPriceRupees, maxPriceRupees, sort, page, limit, includeUnverified } = input;
 
     if (!isDbConnected()) {
       return { total: SAMPLE_INTERVIEWERS.length, items: SAMPLE_INTERVIEWERS as any };
@@ -85,6 +85,11 @@ export class MarketplaceRepository {
 
     try {
       const where: any = {};
+
+      // Marketplace default: only admin-verified interviewers are listed.
+      if (!includeUnverified) {
+        where.isVerified = true;
+      }
 
       if (search && search.trim()) {
         const query = search.trim();

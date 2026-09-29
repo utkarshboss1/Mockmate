@@ -33,6 +33,18 @@ export class AdminController {
       next(error);
     }
   }
+
+  async setInterviewerVerified(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const profile = await adminService.setInterviewerVerified(
+        req.params.interviewerProfileId,
+        req.body.isVerified,
+      );
+      res.json(successResponse(profile, 'Interviewer verification updated successfully'));
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const adminController = new AdminController();

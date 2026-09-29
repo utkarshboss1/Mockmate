@@ -68,6 +68,70 @@ export class NotificationService {
     });
   }
 
+  async notifyBookingCancelled(data: {
+    candidateId: string;
+    candidateEmail: string;
+    candidateName: string;
+    interviewerUserId: string;
+    interviewerEmail: string;
+    interviewerName: string;
+    cancelledBy: 'candidate' | 'interviewer' | 'admin';
+    scheduledAt: string;
+    bookingId: string;
+  }) {
+    await Promise.all([
+      this.repository.createNotification({
+        userId: data.candidateId,
+        type: NotificationType.BOOKING_CANCELLED,
+        title: 'Mock Interview Cancelled',
+        message: `Your session with ${data.interviewerName} scheduled for ${new Date(data.scheduledAt).toLocaleString()} was cancelled by the ${data.cancelledBy}.`,
+        linkUrl: `/dashboard`,
+      }),
+      this.repository.createNotification({
+        userId: data.interviewerUserId,
+        type: NotificationType.BOOKING_CANCELLED,
+        title: 'Session Cancelled',
+        message: `The session with ${data.candidateName} scheduled for ${new Date(data.scheduledAt).toLocaleString()} was cancelled by the ${data.cancelledBy}.`,
+        linkUrl: `/interviewer/dashboard`,
+      }),
+    ]);
+
+    void sendEmail({
+      to: data.candidateEmail,
+      subject: 'MockMate — Mock Interview Cancelled',
+      html: `<h2>Session Cancelled</h2><p>Your session with <strong>${data.interviewerName}</strong> scheduled for ${new Date(data.scheduledAt).toLocaleString()} was cancelled by the ${data.cancelledBy}.</p>`,
+    });
+
+    void sendEmail({
+      to: data.interviewerEmail,
+      subject: 'MockMate — Session Cancelled',
+      html: `<h2>Session Cancelled</h2><p>The session with <strong>${data.candidateName}</strong> scheduled for ${new Date(data.scheduledAt).toLocaleString()} was cancelled by the ${data.cancelledBy}.</p>`,
+    });
+  }
+
+  async notifyReviewReceived(data: {
+    interviewerUserId: string;
+    interviewerEmail: string;
+    interviewerName: string;
+    candidateName: string;
+    rating: number;
+    bookingId: string;
+  }) {
+    await this.repository.createNotification({
+      userId: data.interviewerUserId,
+      type: NotificationType.REVIEW_RECEIVED,
+      title: 'New Review Received',
+      message: `${data.candidateName} left you a ${data.rating}★ review.`,
+      linkUrl: `/interviewer/dashboard`,
+    });
+
+    void sendEmail({
+      to: data.interviewerEmail,
+      subject: 'MockMate — You received a new review',
+      html: `<h2>New Review</h2><p><strong>${data.candidateName}</strong> left you a ${data.rating}★ review.</p>`,
+    });
+  }
+
   async notifyFeedbackSubmitted(data: {
     candidateId: string;
     candidateEmail: string;

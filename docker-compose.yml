@@ -1,0 +1,57 @@
+# Local development infrastructure for MockMate
+# -------------------------------------------------------------
+# Why this file exists:
+#   The dev team is currently on a college IPv4 LAN where Supabase
+#   (and other paid IPv4-only providers) are unreachable. This stack
+#   runs Postgres + Redis on the developer's own machine, so the
+#   Prisma/Redis-backed code paths can be exercised end-to-end
+#   without any external network dependency.
+#
+# Usage:
+#   docker compose up -d              # start postgres + redis
+#   docker compose down -v            # stop and wipe data
+#   docker compose logs -f postgres   # tail logs
+#
+# After `up`, point apps/backend/.env at:
+#   DATABASE_URL=postgresql://mockmate:mockmate@localhost:5432/mockmate
+#   REDIS_URL=redis://localhost:6379
+# Then run: npm run db:push --workspace=apps/backend
+# -------------------------------------------------------------
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mockmate-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: mockmate
+      POSTGRES_PASSWORD: mockmate
+      POSTGRES_DB: mockmate
+    volumes:
+      - mockmate-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mockmate -d mockmate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mockmate-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - mockmate-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mockmate-postgres-data:
+  mockmate-redis-data:

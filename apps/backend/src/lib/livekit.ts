@@ -5,8 +5,18 @@
 // helper function so business logic does not leak LiveKit internals.
 // ============================================================
 
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { env } from '../config/env';
+
+/**
+ * Admin client for server-side room management (teardown on session end).
+ * Authenticated with the same project credentials as token generation.
+ */
+export const roomService = new RoomServiceClient(
+  env.LIVEKIT_URL,
+  env.LIVEKIT_API_KEY,
+  env.LIVEKIT_API_SECRET,
+);
 
 export async function generateLiveKitToken(params: {
   roomName: string;

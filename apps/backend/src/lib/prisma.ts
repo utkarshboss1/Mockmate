@@ -1,5 +1,15 @@
 // ============================================================
-// prisma.ts — Prisma Client Singleton
+// prisma.ts — Prisma Client Singleton + Connection Probe
+//
+// The Prisma client is always instantiated so that imports
+// don't need to be conditional. Whether requests actually use
+// it is decided by `isMockStorage()` in the mockStore layer
+// and by `checkDbConnection()` here.
+//
+// If the connection check fails at boot, the app keeps running
+// in memory mode (intentional dev behaviour for the college-LAN
+// setup). In production, the env validator rejects STORAGE_MODE=
+// "memory" before this file is ever loaded.
 // ============================================================
 
 import { PrismaClient } from '@prisma/client';

@@ -36,8 +36,8 @@ export class AdminRepository {
       prisma.booking.aggregate({
         where: { status: { in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] } },
         _sum: {
-          totalAmountCents: true,
-          platformFeeCents: true,
+          totalAmountPaise: true,
+          platformFeePaise: true,
         },
       }),
     ]);
@@ -48,8 +48,8 @@ export class AdminRepository {
       totalInterviewers,
       totalBookings,
       completedBookings,
-      totalGrossVolumePaise: revenueAggregate._sum.totalAmountCents || 0,
-      totalPlatformRevenuePaise: revenueAggregate._sum.platformFeeCents || 0,
+      totalGrossVolumePaise: revenueAggregate._sum.totalAmountPaise || 0,
+      totalPlatformRevenuePaise: revenueAggregate._sum.platformFeePaise || 0,
     };
   }
 
@@ -133,6 +133,42 @@ export class AdminRepository {
         email: true,
         role: true,
         status: true,
+      },
+    });
+  }
+
+  /**
+   * Verify or un-verify an interviewer's profile. Only meaningful for users
+   * with an interviewer profile — throws a 404 otherwise.
+   */
+  async setInterviewerVerified(
+    interviewerProfileId: string,
+    isVerified: boolean,
+  ) {
+    if (!isDbConnected()) {
+      return { id: interviewerProfileId, isVerified, verifiedAt: isVerified ? new Date() : null };
+    }
+
+    const profile = await prisma.interviewerProfile.findUnique({
+      where: { id: interviewerProfileId },
+      select: { id: true },
+    });
+    if (!profile) {
+      return null;
+    }
+
+    return prisma.interviewerProfile.update({
+      where: { id: interviewerProfileId },
+      data: {
+        isVerified,
+        verifiedAt: isVerified ? new Date() : null,
+      },
+      select: {
+        id: true,
+        isVerified: true,
+        verifiedAt: true,
+        headline: true,
+        user: { select: { id: true, name: true, email: true } },
       },
     });
   }

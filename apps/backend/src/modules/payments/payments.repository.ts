@@ -4,7 +4,7 @@
 
 import { prisma, isDbConnected } from '../../lib/prisma';
 import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
-import { bookingStore } from '../../lib/bookingStore';
+import { mockBookingStore as bookingStore } from '../../mockStore/bookingStore';
 
 export class PaymentsRepository {
   async getBookingWithCandidateAndInterviewer(bookingId: string) {
@@ -13,16 +13,7 @@ export class PaymentsRepository {
       if (stored) {
         return stored as any;
       }
-      return {
-        id: bookingId,
-        candidateId: 'candidate_1',
-        totalAmountCents: 150000,
-        candidate: { id: 'candidate_1', email: 'candidate@mock.com', name: 'Mock Candidate' },
-        interviewerProfile: {
-          user: { name: 'Aarav Sharma', email: 'aarav@mock.com' }
-        },
-        payment: null
-      } as any;
+      return null;
     }
 
     return prisma.booking.findUnique({
@@ -37,32 +28,60 @@ export class PaymentsRepository {
     });
   }
 
-  async upsertPaymentRecord(bookingId: string, stripePaymentIntentId: string, amountCents: number) {
+  /**
+   * Persist the Razorpay order id against the booking's payment record at
+   * order-creation time. This binding is what the verify path checks —
+   * a signature tuple from a different booking's order can never match.
+   */
+  async recordOrderForBooking(
+    bookingId: string,
+    razorpayOrderId: string,
+    amountPaise: number,
+  ) {
     if (!isDbConnected()) {
-      return { id: 'pay_1', bookingId, status: PaymentStatus.PENDING } as any;
+      return { id: 'pay_1', bookingId, razorpayOrderId, amountPaise, status: PaymentStatus.PENDING } as any;
     }
 
     return prisma.payment.upsert({
       where: { bookingId },
       create: {
         bookingId,
-        stripePaymentIntentId,
-        amountCents,
+        razorpayOrderId,
+        amountPaise,
         currency: 'inr',
         status: PaymentStatus.PENDING,
       },
       update: {
-        stripePaymentIntentId,
-        amountCents,
+        razorpayOrderId,
+        amountPaise,
         status: PaymentStatus.PENDING,
+      },
+    });
+  }
+
+  async findPaymentByOrderId(razorpayOrderId: string) {
+    if (!isDbConnected()) {
+      return null;
+    }
+    return prisma.payment.findUnique({
+      where: { razorpayOrderId },
+      include: {
+        booking: {
+          include: {
+            candidate: { select: { id: true, email: true, name: true } },
+            interviewerProfile: {
+              include: { user: { select: { name: true, email: true } } },
+            },
+          },
+        },
       },
     });
   }
 
   async confirmPaymentAndInitializeRoom(
     bookingId: string,
-    stripePaymentIntentId: string,
-    amountCents = 150000,
+    razorpayPaymentId: string,
+    amountPaise: number,
   ) {
     if (!isDbConnected()) {
       return {
@@ -78,19 +97,12 @@ export class PaymentsRepository {
     }
 
     return prisma.$transaction(async (tx: any) => {
-      // 1. Update Payment status to SUCCEEDED
-      const payment = await tx.payment.upsert({
+      // 1. Update Payment status to SUCCEEDED (bounded to this booking)
+      const payment = await tx.payment.update({
         where: { bookingId },
-        create: {
-          bookingId,
-          stripePaymentIntentId,
-          amountCents,
-          currency: 'inr',
-          status: PaymentStatus.SUCCEEDED,
-        },
-        update: {
-          stripePaymentIntentId,
-          amountCents,
+        data: {
+          razorpayPaymentId,
+          amountPaise,
           status: PaymentStatus.SUCCEEDED,
         },
       });
@@ -112,6 +124,57 @@ export class PaymentsRepository {
       });
 
       return { booking, payment, interview };
+    });
+  }
+
+  /**
+   * Webhook path: confirm a payment identified only by its Razorpay order id.
+   * Used when payment.captured arrives without a client-side verify round-trip.
+   */
+  async confirmPaymentByOrderId(razorpayOrderId: string, razorpayPaymentId: string) {
+    if (!isDbConnected()) {
+      return null;
+    }
+
+    return prisma.$transaction(async (tx: any) => {
+      const payment = await tx.payment.update({
+        where: { razorpayOrderId },
+        data: {
+          razorpayPaymentId,
+          status: PaymentStatus.SUCCEEDED,
+        },
+      });
+
+      // Idempotent: if already CONFIRMED, keep the current state
+      const booking = await tx.booking.update({
+        where: { id: payment.bookingId },
+        data: {
+          ...(payment.status !== PaymentStatus.SUCCEEDED
+            ? { status: BookingStatus.CONFIRMED }
+            : {}),
+        },
+      });
+
+      const interview = await tx.interview.upsert({
+        where: { bookingId: payment.bookingId },
+        create: {
+          bookingId: payment.bookingId,
+          status: InterviewStatus.WAITING,
+        },
+        update: {},
+      });
+
+      return { booking, payment, interview };
+    });
+  }
+
+  async markPaymentFailedByOrderId(razorpayOrderId: string) {
+    if (!isDbConnected()) {
+      return null;
+    }
+    return prisma.payment.update({
+      where: { razorpayOrderId },
+      data: { status: PaymentStatus.FAILED },
     });
   }
 }

@@ -1,11 +1,14 @@
 // ============================================================
-// userStore.ts — Shared In-Memory User & Session Registry
-// Ensures genuine users persist their actual name, email & role
+// mockStore/userStore.ts — In-Memory User & Session Registry
+//
+// TODO(college-LAN): Switch all auth flows back to Prisma +
+// Better Auth once DATABASE_URL is reachable. Then delete this
+// entire file and the memory branch in auth.service.ts.
 // ============================================================
 
 import { UserRole, UserStatus } from '@interviewiq/shared';
 
-export interface StoredUser {
+export interface MockStoredUser {
   id: string;
   email: string;
   name: string;
@@ -14,33 +17,33 @@ export interface StoredUser {
   createdAt: Date;
 }
 
-export interface StoredSession {
+export interface MockStoredSession {
   token: string;
-  user: StoredUser;
+  user: MockStoredUser;
   expiresAt: Date;
 }
 
-const usersByEmail = new Map<string, StoredUser>();
-const usersById = new Map<string, StoredUser>();
-const sessionsByToken = new Map<string, StoredSession>();
+const usersByEmail = new Map<string, MockStoredUser>();
+const usersById = new Map<string, MockStoredUser>();
+const sessionsByToken = new Map<string, MockStoredSession>();
 
-export const userStore = {
-  saveUser(user: StoredUser): StoredUser {
+export const mockUserStore = {
+  saveUser(user: MockStoredUser): MockStoredUser {
     usersByEmail.set(user.email.toLowerCase(), user);
     usersById.set(user.id, user);
     return user;
   },
 
-  findUserByEmail(email: string): StoredUser | undefined {
+  findUserByEmail(email: string): MockStoredUser | undefined {
     return usersByEmail.get(email.toLowerCase());
   },
 
-  findUserById(id: string): StoredUser | undefined {
+  findUserById(id: string): MockStoredUser | undefined {
     return usersById.get(id);
   },
 
-  saveSession(token: string, user: StoredUser): StoredSession {
-    const session: StoredSession = {
+  saveSession(token: string, user: MockStoredUser): MockStoredSession {
+    const session: MockStoredSession = {
       token,
       user,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
@@ -49,7 +52,7 @@ export const userStore = {
     return session;
   },
 
-  findSession(token: string): StoredSession | undefined {
+  findSession(token: string): MockStoredSession | undefined {
     const session = sessionsByToken.get(token);
     if (!session) return undefined;
 

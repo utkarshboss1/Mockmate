@@ -8,7 +8,7 @@ import { RegisterInput, LoginInput } from './auth.validator';
 import { errors } from '../../middleware/error.middleware';
 import { UserRole, UserStatus } from '@interviewiq/shared';
 import { isDbConnected } from '../../lib/prisma';
-import { userStore } from '../../lib/userStore';
+import { mockUserStore as userStore } from '../../mockStore/userStore';
 
 export class AuthService {
   constructor(private repository: AuthRepository) {}

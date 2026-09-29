@@ -7,6 +7,10 @@ import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
 import { errors } from '../../middleware/error.middleware';
 import { BookingStatus, UserRole } from '@interviewiq/shared';
 import { buildPaginationMeta } from '../../types';
+import { availabilityService } from '../availability/availability.service';
+
+// Unpaid PENDING bookings hold their slot for this long before the scheduler expires them.
+export const PAYMENT_TTL_MINUTES = 15;
 
 export class BookingService {
   constructor(private repository: BookingRepository) {}
@@ -21,17 +25,37 @@ export class BookingService {
       throw errors.badRequest('You cannot book a mock interview with yourself');
     }
 
-    // 1. Calculate financials in paise / ₹ (INR)
-    const totalAmountCents = interviewer.pricePerHour;
+    // 1. Server-side availability enforcement — the frontend SlotPicker is a
+    // convenience, never the source of truth. The requested slot must be one
+    // this interviewer actually offers (weekly rules, minus booked/blocked).
+    const bookable = await availabilityService.generateBookableSlots(
+      input.interviewerProfileId,
+      30,
+    );
+    const requestedIso = new Date(input.scheduledAt).toISOString();
+    const isSlotOffered = bookable.some((day: any) => day.slots.includes(requestedIso));
+    if (!isSlotOffered) {
+      throw errors.conflict('The selected time slot is not available for this interviewer');
+    }
+
+    // 2. Calculate financials in paise (₹ INR minor units)
+    const totalAmountPaise = interviewer.pricePerHour;
+    if (!totalAmountPaise || totalAmountPaise <= 0) {
+      throw errors.conflict('This interviewer has not set a valid hourly rate yet');
+    }
     const platformFeePercent = 15;
-    const platformFeeCents = Math.round((totalAmountCents * platformFeePercent) / 100);
-    const interviewerPayoutCents = totalAmountCents - platformFeeCents;
+    const platformFeePaise = Math.round((totalAmountPaise * platformFeePercent) / 100);
+    const interviewerPayoutPaise = totalAmountPaise - platformFeePaise;
+
+    // 3. Reservation deadline — the booking expires if unpaid past this.
+    const paymentDueAt = new Date(Date.now() + PAYMENT_TTL_MINUTES * 60 * 1000);
 
     try {
       return await this.repository.createBookingWithConflictCheck(candidateId, input, {
-        totalAmountCents,
-        platformFeeCents,
-        interviewerPayoutCents,
+        totalAmountPaise,
+        platformFeePaise,
+        interviewerPayoutPaise,
+        paymentDueAt,
       });
     } catch (err: any) {
       // SLOT_ALREADY_BOOKED — our explicit conflict error.
@@ -92,18 +116,48 @@ export class BookingService {
       throw errors.forbidden('You do not have permission to cancel this booking');
     }
 
-    if (booking.status === BookingStatus.COMPLETED) {
-      throw errors.badRequest('Completed interviews cannot be cancelled');
+    if (
+      booking.status === BookingStatus.COMPLETED ||
+      booking.status === BookingStatus.EXPIRED
+    ) {
+      throw errors.badRequest('This booking can no longer be cancelled');
     }
 
-    const cancelledBy = isCandidate ? 'candidate' : 'interviewer';
+    if (booking.status === BookingStatus.CANCELLED_BY_CANDIDATE ||
+        booking.status === BookingStatus.CANCELLED_BY_INTERVIEWER) {
+      throw errors.badRequest('This booking has already been cancelled');
+    }
+
+    // Cancellation cutoff — no cancelling inside the final 2 hours before start.
+    const msUntilStart = new Date(booking.scheduledAt).getTime() - Date.now();
+    const CANCELLATION_CUTOFF_MS = 2 * 60 * 60 * 1000;
+    if (msUntilStart < CANCELLATION_CUTOFF_MS) {
+      throw errors.badRequest('Sessions cannot be cancelled less than 2 hours before the scheduled start time');
+    }
+
     const newStatus = isCandidate
       ? BookingStatus.CANCELLED_BY_CANDIDATE
       : BookingStatus.CANCELLED_BY_INTERVIEWER;
+    const cancelledBy = isAdmin && !isCandidate && !isInterviewer ? 'admin' : isCandidate ? 'candidate' : 'interviewer';
+    const cancellationNote = `Cancelled by ${cancelledBy}: ${reason}`;
 
-    const cancellationNote = `Cancelled by ${isAdmin && !isCandidate && !isInterviewer ? 'admin' : cancelledBy}: ${reason}`;
+    const cancelled = await this.repository.updateBookingStatus(bookingId, newStatus, cancellationNote);
 
-    return this.repository.updateBookingStatus(bookingId, newStatus, cancellationNote);
+    // Cancellation notification (in-app + email, non-blocking)
+    const { notificationService } = await import('../notification/notification.service');
+    void notificationService.notifyBookingCancelled({
+      candidateId: booking.candidateId,
+      candidateEmail: booking.candidate.email,
+      candidateName: booking.candidate.name,
+      interviewerUserId: booking.interviewerProfile.userId,
+      interviewerEmail: booking.interviewerProfile.user.email,
+      interviewerName: booking.interviewerProfile.user.name,
+      cancelledBy,
+      scheduledAt: new Date(booking.scheduledAt).toISOString(),
+      bookingId: booking.id,
+    });
+
+    return cancelled;
   }
 }
 

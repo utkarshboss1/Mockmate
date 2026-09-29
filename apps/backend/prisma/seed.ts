@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { UserRole, ExperienceLevel } from '@interviewiq/shared';
+import { UserRole, ExperienceLevel, UserStatus } from '@interviewiq/shared';
 
 const prisma = new PrismaClient();
 
@@ -64,19 +64,32 @@ async function seed() {
   });
 
   // 2. Create Candidate User
-  const _candidateUser = await prisma.user.upsert({
-    where: { email: 'candidate@example.com' },
-    update: {},
-    create: {
-      id: 'usr_cand_1',
-      name: 'Alex Johnson',
-      email: 'candidate@example.com',
-      role: UserRole.CANDIDATE,
-      status: 'ACTIVE',
-    },
-  });
+    const _candidateUser = await prisma.user.upsert({
+      where: { email: 'candidate@example.com' },
+      update: {},
+      create: {
+        id: 'usr_cand_1',
+        name: 'Alex Johnson',
+        email: 'candidate@example.com',
+        role: UserRole.CANDIDATE,
+        status: UserStatus.ACTIVE,
+      },
+    });
 
-  console.log('✅ Seeding completed successfully!');
+    // 3. Create Admin User
+    const _adminUser = await prisma.user.upsert({
+      where: { email: 'admin@mockmate.in' },
+      update: {},
+      create: {
+        id: 'usr_admin_1',
+        name: 'MockMate Admin',
+        email: 'admin@mockmate.in',
+        role: UserRole.ADMIN,
+        status: UserStatus.ACTIVE,
+      },
+    });
+
+    console.log('✅ Seeding completed successfully!');
 }
 
 seed()

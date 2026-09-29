@@ -37,6 +37,11 @@ export class InterviewService {
       throw errors.forbidden('You are not authorized to join this interview room');
     }
 
+    // Ended rooms are read-only history — no new join tokens.
+    if (interview.status === InterviewStatus.ENDED) {
+      throw errors.forbidden('This interview session has already ended');
+    }
+
     const scheduledAt = interview.booking.scheduledAt;
     if (scheduledAt) {
       const scheduledTime = new Date(scheduledAt).getTime();
@@ -125,7 +130,23 @@ export class InterviewService {
       throw errors.forbidden('You are not authorized to conclude this interview session');
     }
 
-    return this.repository.updateInterviewStatus(interviewId, InterviewStatus.ENDED, 'endedAt');
+    const ended = await this.repository.updateInterviewStatus(
+      interviewId,
+      InterviewStatus.ENDED,
+      'endedAt',
+    );
+
+    // Best-effort LiveKit room teardown — participants are disconnected
+    // server-side. Failure is logged, not fatal: the DB state is the
+    // source of truth and the join gate above blocks re-entry anyway.
+    try {
+      const { roomService } = await import('../../lib/livekit');
+      await roomService.deleteRoom(interview.roomName);
+    } catch (err) {
+      console.error(`Failed to delete LiveKit room ${interview.roomName}:`, err);
+    }
+
+    return ended;
   }
 
   async getInterviewMessages(interviewId: string, userId: string) {

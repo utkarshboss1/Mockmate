@@ -27,6 +27,11 @@ export class FeedbackService {
       input,
     );
 
+    // Transition the booking to COMPLETED — feedback submission proves the
+    // session happened. (The lifecycle scheduler also completes elapsed
+    // sessions; both paths are idempotent.)
+    await this.repository.markBookingCompleted(input.bookingId);
+
     // Trigger Notification & Email
     const { notificationService } = await import('../notification/notification.service');
     void notificationService.notifyFeedbackSubmitted({
@@ -53,11 +58,24 @@ export class FeedbackService {
       throw errors.conflict('You have already submitted a review for this mock interview session');
     }
 
-    return this.repository.createReviewAndUpdateInterviewerStats(
+    const review = await this.repository.createReviewAndUpdateInterviewerStats(
       candidateId,
       booking.interviewerProfileId,
       input,
     );
+
+    // Notify the interviewer about the new review (in-app + email, non-blocking)
+    const { notificationService } = await import('../notification/notification.service');
+    void notificationService.notifyReviewReceived({
+      interviewerUserId: booking.interviewerProfile.userId,
+      interviewerEmail: booking.interviewerProfile.user.email,
+      interviewerName: booking.interviewerProfile.user.name,
+      candidateName: booking.candidate.name,
+      rating: input.rating,
+      bookingId: input.bookingId,
+    });
+
+    return review;
   }
 
   async getFeedback(bookingId: string, userId: string, role: UserRole) {

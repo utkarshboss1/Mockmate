@@ -29,8 +29,8 @@ export interface BookingLike {
   scheduledAt: string;
   interviewType: string;
   notes?: string | null;
-  totalAmountCents: number;
-  interviewerPayoutCents?: number;
+  totalAmountPaise: number;
+  interviewerPayoutPaise?: number;
   candidate?: { id?: string; name?: string; avatar?: string | null } | null;
   interviewerProfile?: {
     id?: string;
@@ -94,8 +94,8 @@ export function BookingCard({ booking, userRole, onCancel }: BookingCardProps) {
           <span className="font-bold text-foreground">
             {formatCurrency(
               userRole === 'candidate'
-                ? booking.totalAmountCents
-                : (booking.interviewerPayoutCents ?? booking.totalAmountCents),
+                ? booking.totalAmountPaise
+                : (booking.interviewerPayoutPaise ?? booking.totalAmountPaise),
             )}
           </span>
         </div>

@@ -7,6 +7,20 @@ import { CreateFeedbackInput, CreateReviewInput } from './feedback.validator';
 import { BookingStatus } from '@interviewiq/shared';
 
 export class FeedbackRepository {
+  /**
+   * Feedback submission proves the session happened — transition the booking
+   * to COMPLETED. Idempotent: re-submission keeps the terminal state.
+   */
+  async markBookingCompleted(bookingId: string) {
+    if (!isDbConnected()) {
+      return { id: bookingId, status: BookingStatus.COMPLETED } as any;
+    }
+    return prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: BookingStatus.COMPLETED },
+    });
+  }
+
   async getBookingWithUsers(bookingId: string) {
     if (!isDbConnected()) {
       return {
@@ -16,6 +30,7 @@ export class FeedbackRepository {
         interviewerProfileId: 'int_1',
         interviewerProfile: {
           id: 'int_1',
+          userId: 'usr_int_1',
           user: { id: 'usr_int_1', name: 'Priya Sharma', email: 'priya@example.com' },
         },
         feedback: null,

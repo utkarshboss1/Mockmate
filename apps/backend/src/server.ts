@@ -9,6 +9,7 @@ import http from 'http';
 import { createApp } from './app';
 import { env } from './config/env';
 import { prisma, checkDbConnection } from './lib/prisma';
+import { startLifecycleSchedulers } from './lib/schedulers';
 
 const DB_PING_INTERVAL_MS = 30_000;
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -44,7 +45,10 @@ async function bootstrap() {
       ? setInterval(() => void checkDbConnection(), DB_PING_INTERVAL_MS)
       : null;
 
-  // 5. Start listening
+  // 5. Booking lifecycle scheduler (PENDING TTL expiry, completions, no-shows)
+  const scheduler = startLifecycleSchedulers();
+
+  // 6. Start listening
   server.listen(env.PORT, () => {
     console.log(`\n🚀 InterviewIQ Backend Server Running`);
     console.log(`   Environment : ${env.NODE_ENV}`);
@@ -61,6 +65,7 @@ async function bootstrap() {
 
     console.log(`\n${signal} received. Shutting down gracefully...`);
     if (dbPingTimer) clearInterval(dbPingTimer);
+    scheduler.stop();
 
     // Stop accepting new connections (HTTP + WebSocket), then drain
     io.close();

@@ -15,7 +15,7 @@ import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { env } from '../config/env';
 import { prisma, isDbConnected } from './prisma';
-import { userStore } from './userStore';
+import { mockUserStore as userStore } from '../mockStore/userStore';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;

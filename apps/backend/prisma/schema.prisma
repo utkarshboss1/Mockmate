@@ -56,6 +56,7 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED_BY_CANDIDATE
   CANCELLED_BY_INTERVIEWER
+  EXPIRED
   COMPLETED
   NO_SHOW
 }
@@ -119,7 +120,6 @@ model User {
   interviewerProfile InterviewerProfile?
   bookingsAsCandidate Booking[]           @relation("CandidateBookings")
   notifications       Notification[]
-  resumes             Resume[]
 
   // Better Auth managed tables
   sessions Session[]
@@ -195,21 +195,17 @@ model InterviewerProfile {
   yearsOfExperience Int             @default(0)
   experienceLevel   ExperienceLevel @default(MID)
 
-  // Pricing stored in cents — avoids floating point issues
+  // Pricing stored in paise (INR minor units) — never use floats for money
   pricePerHour Int @default(0)
 
   linkedinUrl String?
   githubUrl   String?
 
   // Verification by admin
-  isVerified     Boolean @default(false)
+  isVerified     Boolean   @default(false)
   verifiedAt     DateTime?
 
-  // Stripe Connect — for receiving payouts
-  stripeAccountId      String?
-  stripeAccountEnabled Boolean @default(false)
-
-  // Denormalized stats (updated via triggers/events — avoids N+1 on listing page)
+  // Denormalized stats (updated transactionally on review submission)
   averageRating    Float @default(0)
   totalReviews     Int   @default(0)
   totalInterviews  Int   @default(0)
@@ -311,10 +307,14 @@ model Booking {
   interviewType   InterviewType
   status          BookingStatus @default(PENDING)
 
-  // All amounts in cents
-  totalAmountCents         Int
-  platformFeeCents         Int
-  interviewerPayoutCents   Int
+  // Payment reservation window — unpaid PENDING bookings are expired by the
+  // scheduler after this deadline so they stop holding the slot.
+  paymentDueAt DateTime?
+
+  // All amounts in paise (INR minor units)
+  totalAmountPaise       Int
+  platformFeePaise       Int
+  interviewerPayoutPaise Int
 
   notes     String?   @db.Text
   deletedAt DateTime?
@@ -342,19 +342,24 @@ model Payment {
   bookingId String @unique
   booking   Booking @relation(fields: [bookingId], references: [id])
 
-  stripePaymentIntentId String  @unique
-  stripeChargeId        String?
+  // Order created by our backend for this specific booking. Binding the
+  // order at creation time is what makes cross-booking verification
+  // impossible — the verify path checks this stored order id, never a
+  // client-supplied one.
+  razorpayOrderId String   @unique
+  razorpayPaymentId String?
 
-  amountCents Int
+  amountPaise Int
   currency    String        @default("inr")
   status      PaymentStatus @default(PENDING)
 
-  refundedAmountCents Int @default(0)
+  refundedAmountPaise Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([stripePaymentIntentId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
   @@map("payments")
 }
 
@@ -492,41 +497,4 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
   @@map("notifications")
-}
-
-// ─── Resume ───────────────────────────────────────────────────
-
-model Resume {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  fileName           String
-  cloudinaryUrl      String
-  cloudinaryPublicId String @unique
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  analysis ResumeAnalysis?
-
-  @@index([userId])
-  @@map("resumes")
-}
-
-// ─── Resume Analysis (AI) ─────────────────────────────────────
-
-model ResumeAnalysis {
-  id       String @id @default(cuid())
-  resumeId String @unique
-  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  extractedSkills      String[]
-  improvements         String[]
-  predictedQuestions   String[]
-  overallScore         Int // 0-100
-
-  createdAt DateTime @default(now())
-
-  @@map("resume_analyses")
 }

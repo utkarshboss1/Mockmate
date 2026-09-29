@@ -51,7 +51,7 @@ export default function InterviewerDashboardPage() {
 
   const totalEarningsPaise = bookings
     .filter((b) => b.status === 'COMPLETED' || b.status === 'CONFIRMED')
-    .reduce((sum, b) => sum + (b.interviewerPayoutCents || 0), 0);
+    .reduce((sum, b) => sum + (b.interviewerPayoutPaise || 0), 0);
 
   const profileObj = userProfile?.interviewerProfile;
   const isProfileComplete = Boolean(

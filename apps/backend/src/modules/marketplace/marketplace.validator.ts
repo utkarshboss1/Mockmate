@@ -16,6 +16,9 @@ export const marketplaceQuerySchema = z.object({
     .default('rating_desc'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(12),
+  // Marketplace only lists verified interviewers by default. Used by the
+  // interviewer's own dashboard/profile preview to see their unverified page.
+  includeUnverified: z.coerce.boolean().default(false),
 });
 
 export type MarketplaceQueryInput = z.infer<typeof marketplaceQuerySchema>;

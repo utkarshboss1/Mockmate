@@ -17,3 +17,9 @@ export const adminUserQuerySchema = z.object({
 
 export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
 export type AdminUserQueryInput = z.infer<typeof adminUserQuerySchema>;
+
+export const setInterviewerVerifiedSchema = z.object({
+  isVerified: z.boolean(),
+});
+
+export type SetInterviewerVerifiedInput = z.infer<typeof setInterviewerVerifiedSchema>;

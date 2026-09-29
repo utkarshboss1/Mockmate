@@ -6,8 +6,8 @@ import { prisma, isDbConnected } from '../../lib/prisma';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
 import { BookingStatus } from '@interviewiq/shared';
 import { Prisma } from '@prisma/client';
-import { bookingStore } from '../../lib/bookingStore';
-import { userStore } from '../../lib/userStore';
+import { mockBookingStore as bookingStore } from '../../mockStore/bookingStore';
+import { mockUserStore as userStore } from '../../mockStore/userStore';
 
 const SAMPLE_BOOKINGS = [
   {
@@ -18,9 +18,10 @@ const SAMPLE_BOOKINGS = [
     durationMinutes: 60,
     interviewType: 'TECHNICAL_CODING',
     status: 'CONFIRMED',
-    totalAmountCents: 150000,
-    platformFeeCents: 22500,
-    interviewerPayoutCents: 127500,
+    totalAmountPaise: 150000,
+    platformFeePaise: 22500,
+    interviewerPayoutPaise: 127500,
+    paymentDueAt: null,
     notes: 'Please review Graph BFS/DFS before the session.',
     candidate: { id: 'candidate_1', name: 'Mock Candidate', email: 'candidate@mock.com', avatar: null },
     interviewerProfile: {
@@ -28,10 +29,19 @@ const SAMPLE_BOOKINGS = [
       user: { id: 'u_1', name: 'Aarav Sharma', email: 'aarav@mock.com', avatar: null }
     },
     payment: { id: 'p_1', status: 'SUCCEEDED' },
-    interview: { id: 'i_1', status: 'READY', roomName: 'room_1' },
+    interview: { id: 'i_1', status: 'ACTIVE', roomName: 'room_1' },
     feedback: null,
     review: null
   }
+];
+
+// Statuses that make an interviewer's slot unavailable to new bookings.
+// EXPIRED bookings release their slot (payment never completed).
+const SLOT_BLOCKING_STATUSES = [
+  BookingStatus.PENDING,
+  BookingStatus.CONFIRMED,
+  BookingStatus.COMPLETED,
+  BookingStatus.NO_SHOW,
 ];
 
 export class BookingRepository {
@@ -64,9 +74,10 @@ export class BookingRepository {
     candidateId: string,
     input: CreateBookingInput,
     financials: {
-      totalAmountCents: number;
-      platformFeeCents: number;
-      interviewerPayoutCents: number;
+      totalAmountPaise: number;
+      platformFeePaise: number;
+      interviewerPayoutPaise: number;
+      paymentDueAt: Date;
     },
   ) {
     if (!isDbConnected()) {
@@ -79,9 +90,10 @@ export class BookingRepository {
         durationMinutes: 60,
         interviewType: input.interviewType,
         status: BookingStatus.PENDING,
-        totalAmountCents: financials.totalAmountCents,
-        platformFeeCents: financials.platformFeeCents,
-        interviewerPayoutCents: financials.interviewerPayoutCents,
+        totalAmountPaise: financials.totalAmountPaise,
+        platformFeePaise: financials.platformFeePaise,
+        interviewerPayoutPaise: financials.interviewerPayoutPaise,
+        paymentDueAt: financials.paymentDueAt,
         notes: input.notes || null,
         candidate: {
           id: candidateId,
@@ -108,14 +120,12 @@ export class BookingRepository {
     // two concurrent bookings for the same slot both pass the overlap check.
     return prisma.$transaction(
       async (tx) => {
-        // 1. Check for overlapping non-cancelled bookings.
+        // 1. Check for overlapping bookings that hold the slot.
         // Bounded by the requested time window — never loads all bookings.
         const conflictingBookings = await tx.booking.findMany({
           where: {
             interviewerProfileId: input.interviewerProfileId,
-            status: {
-              notIn: [BookingStatus.CANCELLED_BY_CANDIDATE, BookingStatus.CANCELLED_BY_INTERVIEWER],
-            },
+            status: { in: SLOT_BLOCKING_STATUSES },
             // Pre-filter in the DB to bookings that could possibly overlap
             scheduledAt: { lt: requestedEnd },
           },
@@ -141,9 +151,10 @@ export class BookingRepository {
             durationMinutes: DURATION_MINUTES,
             interviewType: input.interviewType,
             status: BookingStatus.PENDING,
-            totalAmountCents: financials.totalAmountCents,
-            platformFeeCents: financials.platformFeeCents,
-            interviewerPayoutCents: financials.interviewerPayoutCents,
+            totalAmountPaise: financials.totalAmountPaise,
+            platformFeePaise: financials.platformFeePaise,
+            interviewerPayoutPaise: financials.interviewerPayoutPaise,
+            paymentDueAt: financials.paymentDueAt,
             notes: input.notes || null,
           },
           include: {
@@ -232,7 +243,7 @@ export class BookingRepository {
     if (!isDbConnected()) {
       const stored = bookingStore.findBookingById(id);
       if (stored) return stored as any;
-      return SAMPLE_BOOKINGS.find((b) => b.id === id) as any || ({ ...SAMPLE_BOOKINGS[0], id } as any);
+      return SAMPLE_BOOKINGS.find((b) => b.id === id) as any || null;
     }
 
     return prisma.booking.findUnique({

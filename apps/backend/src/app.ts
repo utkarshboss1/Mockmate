@@ -12,6 +12,7 @@ import { env } from './config/env';
 import { generalLimiter } from './middleware/rateLimiter';
 import { errorMiddleware } from './middleware/error.middleware';
 import { authRouter } from './modules/auth/auth.routes';
+import { paymentsService } from './modules/payments/payments.service';
 import { usersRouter } from './modules/users/users.routes';
 import { marketplaceRouter } from './modules/marketplace/marketplace.routes';
 import { availabilityRouter } from './modules/availability/availability.routes';
@@ -53,6 +54,24 @@ export function createApp() {
   // ─── Better Auth Route Handler ───────────────────────────
   // CRITICAL: Mount before express.json() so raw body isn't consumed prematurely
   app.all('/api/auth/*', toNodeHandler(auth));
+
+  // ─── Razorpay Webhook ──────────────────────────────────────
+  // CRITICAL: Must be mounted BEFORE express.json() — the webhook signature
+  // is an HMAC over the raw request body, which json parsing would destroy.
+  app.post(
+    '/api/v1/payments/webhook',
+    express.raw({ type: 'application/json', limit: '1mb' }),
+    async (req, res, next) => {
+      try {
+        const rawBody = req.body?.toString('utf8') ?? '';
+        const signature = String(req.headers['x-razorpay-signature'] ?? '');
+        const result = await paymentsService.handleRazorpayWebhook(rawBody, signature);
+        res.json(result);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   // ─── Body Parsing ────────────────────────────────────────
   app.use(express.json({ limit: '10mb' }));

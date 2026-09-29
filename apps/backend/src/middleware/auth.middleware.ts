@@ -9,7 +9,7 @@ import { errors } from './error.middleware';
 import { UserRole, UserStatus } from '@interviewiq/shared';
 import { prisma, isDbConnected } from '../lib/prisma';
 import { env } from '../config/env';
-import { userStore } from '../lib/userStore';
+import { mockUserStore as userStore } from '../mockStore/userStore';
 
 export async function requireAuth(
   req: Request,

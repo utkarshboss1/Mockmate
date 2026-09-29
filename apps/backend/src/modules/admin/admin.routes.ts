@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { adminController } from './admin.controller';
 import { requireAuth, requireRole } from '../../middleware/auth.middleware';
 import { validate } from '../../middleware/validate';
-import { updateUserStatusSchema, adminUserQuerySchema } from './admin.validator';
+import { updateUserStatusSchema, adminUserQuerySchema, setInterviewerVerifiedSchema } from './admin.validator';
 import { UserRole } from '@interviewiq/shared';
 
 const router = Router();
@@ -22,6 +22,13 @@ router.get('/users', validate(adminUserQuerySchema, 'query'), (req, res, next) =
 
 router.patch('/users/:id/status', validate(updateUserStatusSchema), (req, res, next) =>
   adminController.updateUserStatus(req, res, next),
+);
+
+// Interviewer verification — gates marketplace listing visibility
+router.patch(
+  '/interviewers/:interviewerProfileId/verify',
+  validate(setInterviewerVerifiedSchema),
+  (req, res, next) => adminController.setInterviewerVerified(req, res, next),
 );
 
 export const adminRouter = router;

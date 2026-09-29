@@ -47,7 +47,7 @@ export interface InterviewerProfile {
   jobTitle: string | null;
   yearsOfExperience: number;
   experienceLevel: ExperienceLevel;
-  pricePerHour: number; // in cents
+  pricePerHour: number; // in paise (INR minor units)
   linkedinUrl: string | null;
   githubUrl: string | null;
   isVerified: boolean;
@@ -94,6 +94,7 @@ export enum BookingStatus {
   CONFIRMED = 'CONFIRMED',
   CANCELLED_BY_CANDIDATE = 'CANCELLED_BY_CANDIDATE',
   CANCELLED_BY_INTERVIEWER = 'CANCELLED_BY_INTERVIEWER',
+  EXPIRED = 'EXPIRED',
   COMPLETED = 'COMPLETED',
   NO_SHOW = 'NO_SHOW',
 }
@@ -114,9 +115,9 @@ export interface Booking {
   durationMinutes: number;
   interviewType: InterviewType;
   status: BookingStatus;
-  totalAmountCents: number;
-  platformFeeCents: number;
-  interviewerPayoutCents: number;
+  totalAmountPaise: number;
+  platformFeePaise: number;
+  interviewerPayoutPaise: number;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -190,8 +191,9 @@ export enum PaymentStatus {
 export interface Payment {
   id: string;
   bookingId: string;
-  stripePaymentIntentId: string;
-  amountCents: number;
+  razorpayOrderId: string;
+  razorpayPaymentId: string | null;
+  amountPaise: number;
   currency: string;
   status: PaymentStatus;
   createdAt: string;
