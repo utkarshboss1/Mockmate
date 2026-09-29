@@ -45,7 +45,7 @@ export function PrepAdvisorWidget() {
             <Sparkles className="h-5 w-5 text-primary animate-pulse" /> AI Interview Prep Advisor
           </CardTitle>
           <Badge variant="secondary" className="text-[10px] font-mono uppercase">
-            Powered by Gemini
+            Powered by Groq · LLaMA 3.3 70B
           </Badge>
         </div>
         <CardDescription className="text-xs">

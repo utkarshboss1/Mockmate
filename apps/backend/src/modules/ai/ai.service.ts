@@ -3,11 +3,19 @@
 // ============================================================
 
 import { groq, GROQ_MODEL } from '../../lib/groq';
+import { env } from '../../config/env';
 import { PolishFeedbackInput, PrepAdvisorInput } from './ai.validator';
 import { prisma, isDbConnected } from '../../lib/prisma';
+import { errors } from '../../middleware/error.middleware';
 
 export class AIService {
   async polishFeedback(input: PolishFeedbackInput) {
+    if (!env.GROQ_API_KEY) {
+      throw errors.internal(
+        'AI feedback is not configured (GROQ_API_KEY missing) — please retry later or write the scorecard manually.',
+      );
+    }
+
     const prompt = `You are a Senior Staff Software Engineer and Technical Interviewer at a top tier tech company.
 Analyze the following raw interview notes taken during a ${input.interviewType.replace('_', ' ')} mock interview session and refine them into a professional evaluation scorecard.
 
@@ -33,17 +41,20 @@ Respond STRICTLY in raw JSON format (without markdown codeblock syntax) matching
       const text = response.choices[0]?.message?.content || '{}';
       return JSON.parse(text);
     } catch (error) {
-      console.error('Groq AI feedback polish failed, using fallback parser:', error);
-      return {
-        professionalSummary: input.rawNotes.slice(0, 200) + '...',
-        strengths: ['Demonstrated problem-solving intent', 'Communicated thought process'],
-        weaknesses: ['Review edge cases and space complexity optimizations'],
-        learningRecommendations: ['Practice LeetCode medium problems under timed constraints'],
-      };
+      console.error('Groq AI feedback polish failed:', error);
+      throw errors.internal(
+        'AI feedback generation failed — please write the scorecard manually and retry AI polish later.',
+      );
     }
   }
 
   async generatePrepAdvisor(userId: string, input: PrepAdvisorInput) {
+    if (!env.GROQ_API_KEY) {
+      throw errors.internal(
+        'AI advisor is not configured (GROQ_API_KEY missing) — ask the operator to set it and retry.',
+      );
+    }
+
     // Query candidate's past interview scorecards to personalize advice
     const pastBookings = isDbConnected()
       ? await prisma.booking.findMany({
@@ -61,10 +72,10 @@ Respond STRICTLY in raw JSON format (without markdown codeblock syntax) matching
     const prompt = `You are a Senior Tech Career & Interview Preparation Advisor.
 Create a personalized 4-Week Interview Preparation Roadmap for a candidate targeting:
 Target Role: ${input.targetRole}
-${input.targetCompany ? `Target Company: ${input.targetCompany}` : ''}
+${input.targetCompany ? `Target Company: ${input.targetCompany}` : 'Target Company: not specified — keep the plan role-focused'}
 
 Candidate's Past Interview Feedback History:
-${pastFeedbacksSummary || 'No past interview feedback available yet. Generate a general top-tier roadmap.'}
+${pastFeedbacksSummary || 'No past interview feedback available yet. Generate a general top-tier roadmap for this role.'}
 
 Respond STRICTLY in raw JSON format matching this structure:
 {
@@ -87,23 +98,18 @@ Respond STRICTLY in raw JSON format matching this structure:
       });
 
       const text = response.choices[0]?.message?.content || '{}';
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+
+      // Sanity check: a roadmap without weeklyPlan is not a roadmap.
+      if (!Array.isArray(parsed.weeklyPlan) || parsed.weeklyPlan.length === 0) {
+        throw new Error('Model response missing weeklyPlan');
+      }
+      return parsed;
     } catch (error) {
-      console.error('Groq AI prep advisor failed, using fallback roadmap:', error);
-      return {
-        targetRole: input.targetRole,
-        weeklyPlan: [
-          { week: 1, focus: 'Data Structures & Algorithms Basics', tasks: ['Arrays, Strings, Hash Maps', 'Two Pointers & Sliding Window'] },
-          { week: 2, focus: 'Trees, Graphs & Dynamic Programming', tasks: ['Binary Tree Traversal (DFS/BFS)', 'DP Core Patterns'] },
-          { week: 3, focus: 'System Design & Architecture', tasks: ['Scalability, Caching, Databases', 'Design Rate Limiter / Key-Value Store'] },
-          { week: 4, focus: 'Mock Interviews & Behavioral Prep', tasks: ['STAR Method Behavioral Stories', 'Timed 60-min Mock Interviews'] },
-        ],
-        topStrategyTips: [
-          'Always think out loud before writing any code.',
-          'Start with a brute force solution, state time complexity, then optimize.',
-          'Ask clarifying questions about input bounds and constraints first.',
-        ],
-      };
+      console.error('Groq AI prep advisor failed:', error);
+      throw errors.internal(
+        'AI roadmap generation failed — please retry in a moment.',
+      );
     }
   }
 }

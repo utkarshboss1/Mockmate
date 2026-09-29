@@ -20,7 +20,8 @@ export const createBookingSchema = z.object({
 export const cancelBookingSchema = z.object({
   reason: z
     .string()
-    .min(5, 'Cancellation reason must be at least 5 characters')
+    .trim()
+    .min(2, 'Please provide a cancellation reason (at least 2 characters)')
     .max(500, 'Reason cannot exceed 500 characters'),
 });
 

@@ -26,11 +26,20 @@ export default function CandidateBookingsPage() {
   }, []);
 
   const handleCancelBooking = async (bookingId: string) => {
-    const reason = prompt('Please enter a reason for cancellation:');
-    if (!reason) return;
+    let reason: string | null = null;
+    // Loop until a valid reason (min 2 chars) or the user cancels the prompt.
+    while (reason === null || reason.trim().length < 2) {
+      reason = prompt(
+        'Please enter a reason for cancellation (at least 2 characters):',
+      );
+      if (reason === null) return; // user pressed Cancel
+      if (reason.trim().length < 2) {
+        alert('Cancellation reason must be at least 2 characters.');
+      }
+    }
 
     try {
-      await api.patch(`/bookings/${bookingId}/cancel`, { reason });
+      await api.patch(`/bookings/${bookingId}/cancel`, { reason: reason.trim() });
       setBookings(bookings.map((b) => (b.id === bookingId ? { ...b, status: 'CANCELLED_BY_CANDIDATE' } : b)));
     } catch (err) {
       alert(getErrorMessage(err));
