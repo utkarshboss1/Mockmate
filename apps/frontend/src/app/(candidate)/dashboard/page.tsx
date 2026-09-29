@@ -2,21 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { BookingCard } from '@/features/booking/components/BookingCard';
 import { PrepAdvisorWidget } from '@/features/ai/components/PrepAdvisorWidget';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Search, AlertCircle } from 'lucide-react';
+import { Calendar, Search, AlertCircle, Sparkles, CreditCard, ArrowRight, ShieldCheck } from 'lucide-react';
 import type { BookingLike } from '@/features/booking/components/BookingCard';
 
 export default function CandidateDashboardPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading, refreshUser } = useAuth();
   const [bookings, setBookings] = useState<BookingLike[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
 
     async function fetchBookings() {
@@ -39,7 +54,7 @@ export default function CandidateDashboardPage() {
     fetchBookings();
 
     return () => controller.abort();
-  }, []);
+  }, [user, authLoading]);
 
   const upcomingBookings = bookings.filter(
     (b) => b.status === 'CONFIRMED' || b.status === 'PENDING',
@@ -61,6 +76,59 @@ export default function CandidateDashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Subscription & Interview Credits Card */}
+      {user?.activePlan ? (
+        <Card className="border-primary/40 bg-gradient-to-r from-primary/15 via-[#1E1B4B]/50 to-card/80 backdrop-blur-xl shadow-xl">
+          <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5">
+                  <Sparkles className="h-3 w-3 mr-1 inline" /> {user.activePlan === 'PRO_PREP' ? 'Pro Prep Pass' : 'FAANG All-Access'}
+                </Badge>
+                <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 bg-emerald-500/10 text-[10px] font-semibold">
+                  Active Subscription
+                </Badge>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold font-heading text-foreground">
+                You have <span className="text-primary">{user.interviewCredits ?? 0}</span> mock session credits remaining
+              </h2>
+              <p className="text-xs text-muted-foreground max-w-lg">
+                Your pass allows you to book 1-on-1 technical mock interviews with top FAANG engineers with zero per-session fees.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <Button asChild className="glow-primary bg-primary text-primary-foreground text-xs font-bold px-4 h-10 rounded-xl">
+                <Link href="/marketplace">
+                  Book with Credit <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="text-xs border-white/[0.1] h-10 rounded-xl">
+                <Link href="/pricing">Manage Pass</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-white/[0.08] bg-card/60 backdrop-blur-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px] text-muted-foreground border-white/[0.1]">
+                Pay-As-You-Go Plan
+              </Badge>
+            </div>
+            <p className="text-xs text-foreground font-medium">
+              Want unlimited scorecards and 3 mock interviews included every month?
+            </p>
+          </div>
+          <Button asChild variant="secondary" size="sm" className="text-xs font-semibold gap-1.5 shrink-0">
+            <Link href="/pricing">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Upgrade to Pro Prep Pass
+            </Link>
+          </Button>
+        </Card>
+      )}
 
       {/* Main Grid */}
       <div className="space-y-6">

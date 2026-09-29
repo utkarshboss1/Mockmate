@@ -7,6 +7,7 @@ import { api, getErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { formatCurrency, getInitials } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SlotPicker } from '@/features/availability/components/SlotPicker';
-import { Calendar, ShieldCheck, ArrowRight, Loader2, AlertCircle, CreditCard } from 'lucide-react';
+import { Calendar, ShieldCheck, ArrowRight, Loader2, AlertCircle, CreditCard, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BookingFormProps {
@@ -61,10 +62,12 @@ const loadRazorpaySDK = (): Promise<boolean> => {
 
 export function BookingForm({ interviewer }: BookingFormProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
   const [interviewType, setInterviewType] = useState<InterviewType>(InterviewType.TECHNICAL_CODING);
   const [notes, setNotes] = useState('');
+  const hasCredits = Boolean(user?.interviewCredits && user.interviewCredits > 0);
+  const [useCredit, setUseCredit] = useState<boolean>(hasCredits);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +81,22 @@ export function BookingForm({ interviewer }: BookingFormProps) {
     try {
       setLoading(true);
       setError(null);
+
+      // If user chooses to book using their active pass credit
+      if (useCredit && hasCredits) {
+        const response = await api.post('/bookings', {
+          interviewerProfileId: interviewer.id,
+          scheduledAt: selectedSlotIso,
+          interviewType,
+          notes,
+          useCredit: true,
+        });
+
+        await refreshUser();
+        toast.success('Session confirmed using 1 Pro Prep credit!');
+        router.push(`/dashboard?payment=success&bookingId=${response.data.data.id}`);
+        return;
+      }
 
       // 1. Create the booking record
       const response = await api.post('/bookings', {
@@ -241,6 +260,28 @@ export function BookingForm({ interviewer }: BookingFormProps) {
             </div>
           </div>
 
+          {hasCredits && (
+            <div className="p-3 rounded-xl border border-primary/40 bg-primary/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Pro Prep Pass Active
+                </span>
+                <Badge className="bg-primary/20 text-primary text-[10px] font-bold">
+                  {user?.interviewCredits} Credits Left
+                </Badge>
+              </div>
+              <label className="flex items-center gap-2 text-xs cursor-pointer text-foreground">
+                <input
+                  type="checkbox"
+                  checked={useCredit}
+                  onChange={(e) => setUseCredit(e.target.checked)}
+                  className="rounded border-white/[0.2] text-primary focus:ring-primary h-4 w-4 accent-primary cursor-pointer"
+                />
+                <span>Use 1 session credit (₹0 due today)</span>
+              </label>
+            </div>
+          )}
+
           <div className="space-y-2 text-xs text-muted-foreground pt-4 border-t border-border/40">
             <div className="flex justify-between">
               <span>Session Duration:</span>
@@ -252,13 +293,19 @@ export function BookingForm({ interviewer }: BookingFormProps) {
             </div>
             <div className="flex justify-between text-sm font-bold text-foreground pt-2 border-t border-border/40">
               <span>Total Price:</span>
-              <span className="text-primary font-heading text-base font-extrabold">{formatCurrency(interviewer.pricePerHour)}</span>
+              <span className="text-primary font-heading text-base font-extrabold">
+                {useCredit && hasCredits ? '₹0 (1 Credit)' : formatCurrency(interviewer.pricePerHour)}
+              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pt-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>Secured via Razorpay. Free cancellation up to 24h before session.</span>
+            <span>
+              {useCredit && hasCredits
+                ? 'Covered by Pro Prep Pass. Free cancellation up to 2h before session.'
+                : 'Secured via Razorpay. Free cancellation up to 2h before session.'}
+            </span>
           </div>
         </CardContent>
         <CardFooter className="p-6 pt-0">
@@ -269,7 +316,11 @@ export function BookingForm({ interviewer }: BookingFormProps) {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Opening Razorpay...
+                <Loader2 className="h-4 w-4 animate-spin" /> Processing booking...
+              </>
+            ) : useCredit && hasCredits ? (
+              <>
+                <Sparkles className="h-4 w-4" /> Book with 1 Session Credit <ArrowRight className="h-4 w-4" />
               </>
             ) : (
               <>

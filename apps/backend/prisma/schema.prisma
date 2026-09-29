@@ -113,6 +113,11 @@ model User {
   status        UserStatus @default(ACTIVE)
   deletedAt     DateTime?
 
+  // Entitlements & Subscription Pass
+  activePlan        String?
+  planExpiresAt     DateTime?
+  interviewCredits  Int        @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

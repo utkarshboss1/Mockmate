@@ -34,6 +34,9 @@ export class UsersRepository {
         avatar: true,
         role: true,
         status: true,
+        activePlan: true,
+        planExpiresAt: true,
+        interviewCredits: true,
         createdAt: true,
         updatedAt: true,
         interviewerProfile: {

@@ -9,6 +9,7 @@ import { validate } from '../../middleware/validate';
 import {
   createRazorpayOrderSchema,
   verifyRazorpayPaymentSchema,
+  purchasePassSchema,
 } from './payments.validator';
 
 const router = Router();
@@ -26,6 +27,13 @@ router.post(
   requireAuth,
   validate(verifyRazorpayPaymentSchema),
   (req, res, next) => paymentsController.verifyRazorpayPayment(req, res, next),
+);
+
+router.post(
+  '/purchase-pass',
+  requireAuth,
+  validate(purchasePassSchema),
+  (req, res, next) => paymentsController.purchasePass(req, res, next),
 );
 
 router.get('/booking/:bookingId', requireAuth, (req, res, next) =>

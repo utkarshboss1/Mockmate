@@ -23,9 +23,11 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
 
 export default function PricingPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -33,6 +35,11 @@ export default function PricingPage() {
   const handleSelectPlan = (plan: PricingPlan) => {
     if (plan.id === 'starter') {
       router.push('/marketplace');
+      return;
+    }
+    if (!user) {
+      toast.info('Please sign in to select this plan.');
+      router.push('/login?redirect=/pricing');
       return;
     }
     setSelectedPlan(plan);

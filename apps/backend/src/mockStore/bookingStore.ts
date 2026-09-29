@@ -61,10 +61,11 @@ export const mockBookingStore = {
     return list;
   },
 
-  updateBookingStatus(id: string, status: string): MockStoredBooking | undefined {
+  updateBookingStatus(id: string, status: string, notes?: string): MockStoredBooking | undefined {
     const booking = bookingsById.get(id);
     if (booking) {
       booking.status = status;
+      if (notes) booking.notes = notes;
       if (status === 'CONFIRMED') {
         booking.payment = {
           id: `pay_${Date.now()}`,

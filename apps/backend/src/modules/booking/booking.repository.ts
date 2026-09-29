@@ -4,7 +4,7 @@
 
 import { prisma, isDbConnected } from '../../lib/prisma';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
-import { BookingStatus } from '@interviewiq/shared';
+import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
 import { Prisma } from '@prisma/client';
 import { mockBookingStore as bookingStore } from '../../mockStore/bookingStore';
 import { mockUserStore as userStore } from '../../mockStore/userStore';
@@ -79,7 +79,13 @@ export class BookingRepository {
       interviewerPayoutPaise: number;
       paymentDueAt: Date;
     },
+    options?: {
+      useCredit?: boolean;
+    },
   ) {
+    const isCreditBooking = Boolean(options?.useCredit);
+    const initialStatus = isCreditBooking ? BookingStatus.CONFIRMED : BookingStatus.PENDING;
+
     if (!isDbConnected()) {
       const user = userStore.findUserById(candidateId);
       const stored = bookingStore.saveBooking({
@@ -89,9 +95,9 @@ export class BookingRepository {
         scheduledAt: new Date(input.scheduledAt),
         durationMinutes: 60,
         interviewType: input.interviewType,
-        status: BookingStatus.PENDING,
-        totalAmountPaise: financials.totalAmountPaise,
-        platformFeePaise: financials.platformFeePaise,
+        status: initialStatus,
+        totalAmountPaise: isCreditBooking ? 0 : financials.totalAmountPaise,
+        platformFeePaise: isCreditBooking ? 0 : financials.platformFeePaise,
         interviewerPayoutPaise: financials.interviewerPayoutPaise,
         paymentDueAt: financials.paymentDueAt,
         notes: input.notes || null,
@@ -142,17 +148,29 @@ export class BookingRepository {
           throw new Error('SLOT_ALREADY_BOOKED');
         }
 
+        // Deduct 1 credit if booking with credit
+        if (isCreditBooking) {
+          await tx.user.update({
+            where: { id: candidateId },
+            data: {
+              interviewCredits: {
+                decrement: 1,
+              },
+            },
+          });
+        }
+
         // 2. Create the booking record
-        return tx.booking.create({
+        const newBooking = await tx.booking.create({
           data: {
             candidateId,
             interviewerProfileId: input.interviewerProfileId,
             scheduledAt: requestedStart,
             durationMinutes: DURATION_MINUTES,
             interviewType: input.interviewType,
-            status: BookingStatus.PENDING,
-            totalAmountPaise: financials.totalAmountPaise,
-            platformFeePaise: financials.platformFeePaise,
+            status: initialStatus,
+            totalAmountPaise: isCreditBooking ? 0 : financials.totalAmountPaise,
+            platformFeePaise: isCreditBooking ? 0 : financials.platformFeePaise,
             interviewerPayoutPaise: financials.interviewerPayoutPaise,
             paymentDueAt: financials.paymentDueAt,
             notes: input.notes || null,
@@ -166,6 +184,26 @@ export class BookingRepository {
             },
           },
         });
+
+        if (isCreditBooking) {
+          await tx.payment.create({
+            data: {
+              bookingId: newBooking.id,
+              razorpayOrderId: `pass_credit_${Date.now()}`,
+              amountPaise: 0,
+              currency: 'inr',
+              status: PaymentStatus.SUCCEEDED,
+            },
+          });
+          await tx.interview.create({
+            data: {
+              bookingId: newBooking.id,
+              status: InterviewStatus.WAITING,
+            },
+          });
+        }
+
+        return newBooking;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
@@ -173,7 +211,28 @@ export class BookingRepository {
 
   async getCandidateBookings(candidateId: string, query: GetBookingsQueryInput) {
     if (!isDbConnected()) {
-      return { total: SAMPLE_BOOKINGS.length, items: SAMPLE_BOOKINGS as any };
+      const userBookings = bookingStore.findBookingsByCandidate(candidateId);
+      if (userBookings.length > 0) {
+        return { total: userBookings.length, items: userBookings as any };
+      }
+
+      // If user has not created any bookings yet, attribute the demo booking
+      // to this candidate so they can test viewing, paying, and cancelling it.
+      let sample = bookingStore.findBookingById('b_1');
+      if (!sample) {
+        const user = userStore.findUserById(candidateId);
+        sample = bookingStore.saveBooking({
+          ...SAMPLE_BOOKINGS[0],
+          candidateId,
+          candidate: {
+            id: candidateId,
+            name: user?.name || 'Mock Candidate',
+            email: user?.email || 'candidate@mock.com',
+            avatar: null,
+          },
+        } as any);
+      }
+      return { total: 1, items: [sample] as any };
     }
 
     const { status, page, limit } = query;
@@ -208,6 +267,10 @@ export class BookingRepository {
 
   async getInterviewerBookings(interviewerProfileId: string, query: GetBookingsQueryInput) {
     if (!isDbConnected()) {
+      const interviewerBookings = bookingStore.findBookingsByInterviewer(interviewerProfileId);
+      if (interviewerBookings.length > 0) {
+        return { total: interviewerBookings.length, items: interviewerBookings as any };
+      }
       if (interviewerProfileId === 'int_1') {
         return { total: SAMPLE_BOOKINGS.length, items: SAMPLE_BOOKINGS as any };
       }
@@ -265,7 +328,18 @@ export class BookingRepository {
 
   async updateBookingStatus(id: string, status: BookingStatus, notes?: string) {
     if (!isDbConnected()) {
-      return SAMPLE_BOOKINGS[0] as any;
+      const updated = bookingStore.updateBookingStatus(id, status, notes);
+      if (updated) {
+        return updated as any;
+      }
+      const sample = SAMPLE_BOOKINGS.find((b) => b.id === id) || SAMPLE_BOOKINGS[0];
+      const saved = bookingStore.saveBooking({
+        ...sample,
+        id,
+        status,
+        notes: notes || sample.notes,
+      } as any);
+      return saved as any;
     }
 
     return prisma.booking.update({

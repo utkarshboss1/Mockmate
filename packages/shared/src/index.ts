@@ -24,6 +24,9 @@ export interface User {
   avatar: string | null;
   role: UserRole;
   status: UserStatus;
+  activePlan?: string | null;
+  planExpiresAt?: string | null;
+  interviewCredits?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -9,6 +9,9 @@ export interface AuthUser {
   role: string;
   status: string;
   avatar?: string | null;
+  activePlan?: string | null;
+  planExpiresAt?: string | null;
+  interviewCredits?: number;
 }
 
 interface AuthContextType {
@@ -16,6 +19,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (user: AuthUser, token: string) => void;
   logout: () => void;
+  updateUser: (partial: Partial<AuthUser>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +28,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: () => {},
   logout: () => {},
+  updateUser: () => {},
+  refreshUser: async () => {},
 });
 
 const AUTH_STORAGE_KEY = 'interviewiq_auth';
@@ -59,8 +66,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }, []);
 
+  const updateUser = useCallback((partial: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        const token = stored ? JSON.parse(stored).token : localStorage.getItem('access_token');
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: updated, token }));
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      const { api } = await import('@/lib/api');
+      const res = await api.get('/users/me');
+      if (res.data?.data) {
+        updateUser(res.data.data);
+      }
+    } catch {}
+  }, [updateUser]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -6,6 +6,7 @@ import { paymentsRepository, PaymentsRepository } from './payments.repository';
 import { env } from '../../config/env';
 import { errors } from '../../middleware/error.middleware';
 import { BookingStatus, PaymentStatus } from '@interviewiq/shared';
+import { PurchasePassInput } from './payments.validator';
 
 export class PaymentsService {
   constructor(private repository: PaymentsRepository) {}
@@ -192,6 +193,32 @@ export class PaymentsService {
     }
 
     return { received: true };
+  }
+
+  async purchasePass(userId: string, input: PurchasePassInput) {
+    const creditsMap: Record<string, number> = {
+      pro: 3,
+      faang_loop: 8,
+    };
+    const creditsToAdd = creditsMap[input.planId] ?? 3;
+    const durationDays = input.isAnnual ? 365 : 30;
+    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+
+    const updatedUser = await this.repository.activateUserPass(
+      userId,
+      input.planId,
+      creditsToAdd,
+      expiresAt,
+    );
+
+    return {
+      planId: input.planId,
+      activePlan: updatedUser.activePlan,
+      creditsAdded: creditsToAdd,
+      totalCredits: updatedUser.interviewCredits,
+      expiresAt: updatedUser.planExpiresAt,
+      user: updatedUser,
+    };
   }
 
   async getPaymentStatus(bookingId: string, candidateId: string) {

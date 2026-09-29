@@ -18,3 +18,12 @@ export const verifyRazorpayPaymentSchema = z.object({
 });
 
 export type VerifyRazorpayPaymentInput = z.infer<typeof verifyRazorpayPaymentSchema>;
+
+export const purchasePassSchema = z.object({
+  planId: z.enum(['pro', 'faang_loop']),
+  isAnnual: z.boolean().default(false),
+  promoCode: z.string().optional(),
+});
+
+export type PurchasePassInput = z.infer<typeof purchasePassSchema>;
+

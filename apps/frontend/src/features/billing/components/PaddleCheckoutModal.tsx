@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +16,12 @@ import {
   ArrowRight,
   Loader2,
   Tag,
+  LogIn,
 } from 'lucide-react';
 import type { PricingPlan } from './PaddlePricingCard';
+import { useAuth } from '@/lib/auth-context';
+import { api, getErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface PaddleCheckoutModalProps {
   plan: PricingPlan | null;
@@ -33,6 +38,8 @@ export function PaddleCheckoutModal({
   onClose,
   onSuccess,
 }: PaddleCheckoutModalProps) {
+  const router = useRouter();
+  const { user, updateUser, refreshUser } = useAuth();
   const [couponCode, setCouponCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState(0);
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -63,15 +70,40 @@ export function PaddleCheckoutModal({
   };
 
   const handlePayNow = async () => {
-    setProcessing(true);
-    // Simulate Paddle Checkout Overlay completion
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setProcessing(false);
-    setSuccess(true);
-    setTimeout(() => {
-      onSuccess(plan.id);
+    if (!user) {
+      toast.info('Please log in first to purchase a pass.');
       onClose();
-    }, 1800);
+      router.push('/login?redirect=/pricing');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      const res = await api.post('/payments/purchase-pass', {
+        planId: plan.id,
+        isAnnual,
+        promoCode: couponApplied ? couponCode.trim() : undefined,
+      });
+
+      if (res.data?.data?.user) {
+        updateUser(res.data.data.user);
+      } else {
+        await refreshUser();
+      }
+
+      setProcessing(false);
+      setSuccess(true);
+      toast.success(`${plan.name} activated! ${plan.limits.interviews} added to your account.`);
+
+      setTimeout(() => {
+        onSuccess(plan.id);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      setProcessing(false);
+      const message = getErrorMessage(err);
+      toast.error(`Checkout failed: ${message}`);
+    }
   };
 
   return (

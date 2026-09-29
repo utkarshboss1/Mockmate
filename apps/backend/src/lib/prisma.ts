@@ -44,13 +44,22 @@ export function isDbConnected(): boolean {
  * permanently pin the app in mock mode, and an outage later on should be
  * detected instead of serving stale "connected" state.
  */
-export async function checkDbConnection(): Promise<boolean> {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    setIsDbConnected(true);
-    return true;
-  } catch (_) {
-    setIsDbConnected(false);
-    return false;
+export async function checkDbConnection(maxRetries = 3): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await prisma.$connect();
+      await prisma.$queryRaw`SELECT 1`;
+      setIsDbConnected(true);
+      return true;
+    } catch (err) {
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
+      setIsDbConnected(false);
+      return false;
+    }
   }
+  setIsDbConnected(false);
+  return false;
 }
