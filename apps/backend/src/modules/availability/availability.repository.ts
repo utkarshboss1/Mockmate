@@ -3,23 +3,11 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { UpdateAvailabilityInput } from './availability.validator';
-import { BookingStatus, DayOfWeek } from '@interviewiq/shared';
-
-const SAMPLE_SLOTS = [
-  { id: 's1', interviewerProfileId: 'int_1', dayOfWeek: DayOfWeek.MONDAY, startTime: '09:00', endTime: '17:00', isActive: true },
-  { id: 's2', interviewerProfileId: 'int_1', dayOfWeek: DayOfWeek.TUESDAY, startTime: '09:00', endTime: '17:00', isActive: true },
-  { id: 's3', interviewerProfileId: 'int_1', dayOfWeek: DayOfWeek.WEDNESDAY, startTime: '09:00', endTime: '17:00', isActive: true },
-  { id: 's4', interviewerProfileId: 'int_1', dayOfWeek: DayOfWeek.THURSDAY, startTime: '09:00', endTime: '17:00', isActive: true },
-  { id: 's5', interviewerProfileId: 'int_1', dayOfWeek: DayOfWeek.FRIDAY, startTime: '09:00', endTime: '17:00', isActive: true },
-];
+import { BookingStatus } from '@interviewiq/shared';
 
 export class AvailabilityRepository {
   async getInterviewerProfileId(userId: string) {
-    if (isMockStorage()) {
-      return 'int_1';
-    }
     const profile = await prisma.interviewerProfile.findUnique({
       where: { userId },
       select: { id: true },
@@ -28,9 +16,6 @@ export class AvailabilityRepository {
   }
 
   async getSlotsByInterviewerProfileId(interviewerProfileId: string) {
-    if (isMockStorage()) {
-      return SAMPLE_SLOTS.map((slot) => ({ ...slot, interviewerProfileId })) as any;
-    }
     return prisma.availabilitySlot.findMany({
       where: { interviewerProfileId },
       orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
@@ -38,9 +23,6 @@ export class AvailabilityRepository {
   }
 
   async replaceWeeklySlots(interviewerProfileId: string, input: UpdateAvailabilityInput) {
-    if (isMockStorage()) {
-      return SAMPLE_SLOTS.map((slot) => ({ ...slot, interviewerProfileId })) as any;
-    }
     return prisma.$transaction(async (tx: any) => {
       await tx.availabilitySlot.deleteMany({
         where: { interviewerProfileId },
@@ -66,9 +48,6 @@ export class AvailabilityRepository {
   }
 
   async getExistingBookingsInRange(interviewerProfileId: string, startDateTime: Date, endDateTime: Date) {
-    if (isMockStorage()) {
-      return [];
-    }
     return prisma.booking.findMany({
       where: {
         interviewerProfileId,
@@ -88,9 +67,6 @@ export class AvailabilityRepository {
   }
 
   async getBlockedSlots(interviewerProfileId: string) {
-    if (isMockStorage()) {
-      return [];
-    }
     return prisma.blockedSlot.findMany({
       where: { interviewerProfileId },
       orderBy: { startDateTime: 'asc' },
@@ -103,17 +79,6 @@ export class AvailabilityRepository {
     endDateTime: Date,
     reason?: string,
   ) {
-    if (isMockStorage()) {
-      return {
-        id: `blk_${Date.now()}`,
-        interviewerProfileId,
-        startDateTime,
-        endDateTime,
-        reason: reason || 'Personal / Blackout',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    }
     return prisma.blockedSlot.create({
       data: {
         interviewerProfileId,
@@ -125,9 +90,6 @@ export class AvailabilityRepository {
   }
 
   async deleteBlockedSlot(interviewerProfileId: string, blockedSlotId: string) {
-    if (isMockStorage()) {
-      return { id: blockedSlotId };
-    }
     return prisma.blockedSlot.deleteMany({
       where: {
         id: blockedSlotId,
@@ -137,9 +99,6 @@ export class AvailabilityRepository {
   }
 
   async getBlockedSlotsInRange(interviewerProfileId: string, startDateTime: Date, endDateTime: Date) {
-    if (isMockStorage()) {
-      return [];
-    }
     return prisma.blockedSlot.findMany({
       where: {
         interviewerProfileId,

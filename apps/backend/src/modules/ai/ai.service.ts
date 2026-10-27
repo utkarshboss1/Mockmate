@@ -9,7 +9,6 @@ import {
   prepAdvisorOutputSchema,
 } from './ai.validator';
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { AIProvider } from '../../infrastructure/ai/ai-provider';
 import { GroqAIProvider } from '../../infrastructure/ai/groq-ai.provider';
 
@@ -48,13 +47,11 @@ Respond STRICTLY in raw JSON format (without markdown codeblock syntax) matching
 
   async generatePrepAdvisor(userId: string, input: PrepAdvisorInput) {
     // Query candidate's past interview scorecards to personalize advice
-    const pastBookings = !isMockStorage()
-      ? await prisma.booking.findMany({
-          where: { candidateId: userId, status: 'COMPLETED' },
-          take: 3,
-          include: { feedback: true },
-        })
-      : [];
+    const pastBookings = await prisma.booking.findMany({
+      where: { candidateId: userId, status: 'COMPLETED' },
+      take: 3,
+      include: { feedback: true },
+    });
 
     const pastFeedbacksSummary = pastBookings
       .filter((b: any) => b.feedback)

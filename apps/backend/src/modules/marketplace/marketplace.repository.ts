@@ -3,81 +3,8 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { MarketplaceQueryInput } from './marketplace.validator';
 
-// Sample mock data returned when database is connecting or unseeded
-const SAMPLE_INTERVIEWERS = [
-  {
-    id: 'int_1',
-    headline: 'Senior Staff Software Engineer @ Google',
-    bio: 'Ex-Amazon, 10+ years interviewing candidates for System Design and Coding.',
-    company: 'Google',
-    jobTitle: 'Senior Staff Engineer',
-    yearsOfExperience: 10,
-    pricePerHour: 150000, // ₹1,500.00 in paise
-    averageRating: 4.9,
-    totalReviews: 42,
-    totalInterviews: 128,
-    user: {
-      id: 'u_1',
-      name: 'Aarav Sharma',
-      avatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-    },
-    tags: [
-      { tag: { id: 't1', name: 'System Design', slug: 'system-design' } },
-      { tag: { id: 't2', name: 'Data Structures', slug: 'data-structures' } },
-      { tag: { id: 't3', name: 'Python', slug: 'python' } },
-    ],
-  },
-  {
-    id: 'int_2',
-    headline: 'Engineering Manager @ Microsoft',
-    bio: 'Specialized in Distributed Systems, Microservices, and Behavioral STAR interviews.',
-    company: 'Microsoft',
-    jobTitle: 'Engineering Manager',
-    yearsOfExperience: 12,
-    pricePerHour: 200000, // ₹2,000.00 in paise
-    averageRating: 5.0,
-    totalReviews: 68,
-    totalInterviews: 195,
-    user: {
-      id: 'u_2',
-      name: 'Priya Patel',
-      avatar:
-        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
-    },
-    tags: [
-      { tag: { id: 't4', name: 'Distributed Systems', slug: 'distributed-systems' } },
-      { tag: { id: 't5', name: 'Behavioral', slug: 'behavioral' } },
-      { tag: { id: 't6', name: 'Java', slug: 'java' } },
-    ],
-  },
-  {
-    id: 'int_3',
-    headline: 'Senior Backend Engineer @ Uber',
-    bio: 'Passionate about helping engineers crack top tech company interviews with real feedback.',
-    company: 'Uber',
-    jobTitle: 'Senior Backend Engineer',
-    yearsOfExperience: 7,
-    pricePerHour: 120000, // ₹1,200.00 in paise
-    averageRating: 4.8,
-    totalReviews: 31,
-    totalInterviews: 84,
-    user: {
-      id: 'u_3',
-      name: 'Rohan Verma',
-      avatar:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-    },
-    tags: [
-      { tag: { id: 't7', name: 'Go', slug: 'go' } },
-      { tag: { id: 't8', name: 'Kafka', slug: 'kafka' } },
-      { tag: { id: 't9', name: 'PostgreSQL', slug: 'postgresql' } },
-    ],
-  },
-];
 
 export class MarketplaceRepository {
   async searchInterviewers(input: MarketplaceQueryInput) {
@@ -92,10 +19,6 @@ export class MarketplaceRepository {
       limit,
       includeUnverified,
     } = input;
-
-    if (isMockStorage()) {
-      return { total: SAMPLE_INTERVIEWERS.length, items: SAMPLE_INTERVIEWERS as any };
-    }
 
     const where: any = {};
 
@@ -178,10 +101,6 @@ export class MarketplaceRepository {
   }
 
   async getInterviewerById(id: string) {
-    if (isMockStorage()) {
-      return SAMPLE_INTERVIEWERS.find((s) => s.id === id) || null;
-    }
-
     return prisma.interviewerProfile.findUnique({
       where: { id },
       include: {

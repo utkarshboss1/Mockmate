@@ -3,29 +3,10 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { UpdateCandidateProfileInput, UpdateInterviewerProfileInput } from './users.validator';
 
 export class UsersRepository {
   async getUserById(id: string) {
-    if (isMockStorage()) {
-      let role = 'CANDIDATE';
-      if (id.includes('interviewer')) role = 'INTERVIEWER';
-      else if (id.includes('admin')) role = 'ADMIN';
-
-      return {
-        id,
-        name: `Mock ${role.charAt(0) + role.slice(1).toLowerCase()}`,
-        email: `${role.toLowerCase()}@mock.com`,
-        role,
-        status: 'ACTIVE',
-        avatar: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        interviewerProfile: null,
-      } as any;
-    }
-
     return prisma.user.findUnique({
       where: { id },
       select: {

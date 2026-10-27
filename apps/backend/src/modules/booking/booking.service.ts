@@ -8,7 +8,6 @@ import { errors } from '../../middleware/error.middleware';
 import { BookingStatus, UserRole } from '@interviewiq/shared';
 import { buildPaginationMeta } from '../../types';
 import { availabilityService } from '../availability/availability.service';
-import { isMockStorage } from '../../mockStore/mode';
 
 // Unpaid PENDING bookings hold their slot for this long before the scheduler expires them.
 export const PAYMENT_TTL_MINUTES = 15;
@@ -51,7 +50,7 @@ export class BookingService {
     // 3. Reservation deadline — the booking expires if unpaid past this.
     const paymentDueAt = new Date(Date.now() + PAYMENT_TTL_MINUTES * 60 * 1000);
 
-    if (input.useCredit && !isMockStorage()) {
+    if (input.useCredit) {
       const { prisma } = await import('../../lib/prisma');
       const candidate = await prisma.user.findUnique({
         where: { id: candidateId },
@@ -127,12 +126,8 @@ export class BookingService {
       throw errors.notFound('Booking');
     }
 
-    const isCandidate =
-      booking.candidateId === userId ||
-      (isMockStorage() && booking.candidateId === 'candidate_1' && role === UserRole.CANDIDATE);
-    const isInterviewer =
-      booking.interviewerProfile.userId === userId ||
-      (isMockStorage() && booking.interviewerProfile.userId === 'u_1' && role === UserRole.INTERVIEWER);
+    const isCandidate = booking.candidateId === userId;
+    const isInterviewer = booking.interviewerProfile.userId === userId;
     const isAdmin = role === UserRole.ADMIN;
 
     if (!isCandidate && !isInterviewer && !isAdmin) {

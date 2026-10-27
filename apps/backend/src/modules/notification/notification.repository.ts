@@ -3,13 +3,10 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { NotificationType } from '@interviewiq/shared';
 
 export class NotificationRepository {
   async getUserNotifications(userId: string) {
-    if (isMockStorage()) return [];
-
     return prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -18,8 +15,6 @@ export class NotificationRepository {
   }
 
   async getUnreadCount(userId: string) {
-    if (isMockStorage()) return 0;
-
     return prisma.notification.count({
       where: { userId, isRead: false },
     });
@@ -32,18 +27,6 @@ export class NotificationRepository {
     message: string;
     linkUrl?: string;
   }) {
-    if (isMockStorage()) {
-      return {
-        id: `notif_${Date.now()}`,
-        userId: data.userId,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        isRead: false,
-        createdAt: new Date(),
-      } as any;
-    }
-
     return prisma.notification.create({
       data: {
         userId: data.userId,
@@ -56,8 +39,6 @@ export class NotificationRepository {
   }
 
   async markAsRead(id: string, userId: string) {
-    if (isMockStorage()) return { count: 1 };
-
     return prisma.notification.updateMany({
       where: { id, userId },
       data: { isRead: true },
@@ -65,8 +46,6 @@ export class NotificationRepository {
   }
 
   async markAllAsRead(userId: string) {
-    if (isMockStorage()) return { count: 0 };
-
     return prisma.notification.updateMany({
       where: { userId, isRead: false },
       data: { isRead: true },

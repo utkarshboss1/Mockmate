@@ -10,7 +10,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BookingStatus, UserRole, InterviewType, DayOfWeek } from '@interviewiq/shared';
 
 process.env.NODE_ENV = 'development';
-process.env.STORAGE_MODE = 'memory';
 
 const { generateBookableSlots } = vi.hoisted(() => ({
   generateBookableSlots: vi.fn().mockResolvedValue([]),

@@ -3,9 +3,8 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { CreateFeedbackInput, CreateReviewInput } from './feedback.validator';
-import { BookingStatus, InterviewStatus } from '@interviewiq/shared';
+import { BookingStatus } from '@interviewiq/shared';
 
 export class FeedbackRepository {
   /**
@@ -13,9 +12,6 @@ export class FeedbackRepository {
    * to COMPLETED. Idempotent: re-submission keeps the terminal state.
    */
   async markBookingCompleted(bookingId: string) {
-    if (isMockStorage()) {
-      return { id: bookingId, status: BookingStatus.COMPLETED } as any;
-    }
     return prisma.booking.update({
       where: { id: bookingId },
       data: { status: BookingStatus.COMPLETED },
@@ -23,24 +19,6 @@ export class FeedbackRepository {
   }
 
   async getBookingWithUsers(bookingId: string) {
-    if (isMockStorage()) {
-      return {
-        id: bookingId,
-        candidateId: 'candidate_1',
-        status: BookingStatus.COMPLETED,
-        candidate: { id: 'candidate_1', name: 'Alex Johnson', email: 'alex@example.com' },
-        interviewerProfileId: 'int_1',
-        interviewerProfile: {
-          id: 'int_1',
-          userId: 'usr_int_1',
-          user: { id: 'usr_int_1', name: 'Priya Sharma', email: 'priya@example.com' },
-        },
-        interview: { status: InterviewStatus.ENDED },
-        feedback: null,
-        review: null,
-      };
-    }
-
     return prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -60,23 +38,6 @@ export class FeedbackRepository {
     candidateId: string,
     input: CreateFeedbackInput,
   ) {
-    if (isMockStorage()) {
-      return {
-        id: `fb_${Date.now()}`,
-        bookingId: input.bookingId,
-        interviewerProfileId,
-        candidateId,
-        rawNotes: input.rawNotes,
-        overallRating: input.overallRating,
-        strengths: input.strengths,
-        weaknesses: input.weaknesses,
-        learningRecommendations: input.learningRecommendations,
-        isSharedWithCandidate: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    }
-
     return prisma.$transaction(async (tx: any) => {
       // 1. Create or update Feedback record
       const feedback = await tx.feedback.upsert({
@@ -117,18 +78,6 @@ export class FeedbackRepository {
     interviewerProfileId: string,
     input: CreateReviewInput,
   ) {
-    if (isMockStorage()) {
-      return {
-        id: `rev_${Date.now()}`,
-        bookingId: input.bookingId,
-        candidateId,
-        interviewerProfileId,
-        rating: input.rating,
-        comment: input.comment,
-        createdAt: new Date(),
-      };
-    }
-
     return prisma.$transaction(async (tx: any) => {
       // 1. Create Review record
       const review = await tx.review.create({
@@ -166,30 +115,6 @@ export class FeedbackRepository {
   }
 
   async getFeedbackByBookingId(bookingId: string) {
-    if (isMockStorage()) {
-      return {
-        id: `fb_mock_1`,
-        bookingId,
-        interviewerProfileId: 'int_1',
-        candidateId: 'candidate_1',
-        overallRating: 4.8,
-        rawNotes: 'Excellent problem solving skills. Solved dynamic programming problem with optimal O(N) space complexity.',
-        strengths: ['Algorithms & Data Structures', 'Clean Modular Code', 'Clear Communication'],
-        weaknesses: ['Corner case handling for empty inputs'],
-        learningRecommendations: ['Practice graph algorithms and topological sort problems on LeetCode'],
-        isSharedWithCandidate: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        booking: {
-          id: bookingId,
-          candidate: { id: 'candidate_1', name: 'Alex Johnson', avatar: null },
-          interviewerProfile: {
-            user: { id: 'usr_int_1', name: 'Priya Sharma', avatar: null },
-          },
-        },
-      };
-    }
-
     return prisma.feedback.findUnique({
       where: { bookingId },
       include: {

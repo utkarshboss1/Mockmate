@@ -3,24 +3,11 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { AdminUserQueryInput } from './admin.validator';
 import { UserRole, UserStatus, BookingStatus } from '@interviewiq/shared';
 
 export class AdminRepository {
   async getAnalyticsOverview() {
-    if (isMockStorage()) {
-      return {
-        totalUsers: 142,
-        totalCandidates: 110,
-        totalInterviewers: 32,
-        totalBookings: 88,
-        completedBookings: 76,
-        totalGrossVolumePaise: 8800000,
-        totalPlatformRevenuePaise: 1320000,
-      };
-    }
-
     const [
       totalUsers,
       totalCandidates,
@@ -55,31 +42,6 @@ export class AdminRepository {
   }
 
   async listUsers(input: AdminUserQueryInput) {
-    if (isMockStorage()) {
-      const mockUsers: any[] = [
-        {
-          id: 'usr_cand_1',
-          name: 'Alex Johnson',
-          email: 'alex@example.com',
-          role: UserRole.CANDIDATE,
-          status: UserStatus.ACTIVE,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'usr_int_1',
-          name: 'Priya Sharma',
-          email: 'priya@example.com',
-          role: UserRole.INTERVIEWER,
-          status: UserStatus.ACTIVE,
-          interviewerProfile: { id: 'int_mock_1', isVerified: false, headline: 'Software Engineer', bio: 'Mock interviewer profile', pricePerHour: 1500 },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      return { total: mockUsers.length, items: mockUsers };
-    }
-
     const { search, page, limit } = input;
     const where: any = {};
 
@@ -119,16 +81,6 @@ export class AdminRepository {
   }
 
   async updateUserStatus(userId: string, status: UserStatus) {
-    if (isMockStorage()) {
-      return {
-        id: userId,
-        name: 'Mock User',
-        email: 'user@example.com',
-        role: UserRole.CANDIDATE,
-        status,
-      };
-    }
-
     return prisma.user.update({
       where: { id: userId },
       data: { status },
@@ -150,10 +102,6 @@ export class AdminRepository {
     interviewerProfileId: string,
     isVerified: boolean,
   ) {
-    if (isMockStorage()) {
-      return { id: interviewerProfileId, isVerified, verifiedAt: isVerified ? new Date() : null };
-    }
-
     const profile = await prisma.interviewerProfile.findUnique({
       where: { id: interviewerProfileId },
       select: { id: true },

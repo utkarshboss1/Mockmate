@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Sparkles, User, Briefcase } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { UserRole } from '@interviewiq/shared';
 import { useAuth } from '@/lib/auth-context';
 
@@ -27,12 +27,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect');
-  const roleParam = searchParams.get('role');
   const { login } = useAuth();
-
-  const [selectedRole, setSelectedRole] = useState<UserRole>(
-    roleParam === 'interviewer' ? UserRole.INTERVIEWER : UserRole.CANDIDATE,
-  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -49,17 +44,14 @@ export function LoginForm() {
       setError(null);
       setLoading(true);
 
-      const response = await api.post('/auth/login', {
-        ...data,
-        loginRole: selectedRole,
-      });
+      const response = await api.post('/auth/login', data);
       const result = response.data?.data;
 
       if (result?.user) {
         login(result.user, result.session);
       }
 
-      const effectiveRole = result?.user?.role || selectedRole;
+      const effectiveRole = result?.user?.role;
 
       // Only allow same-site relative redirect targets (blocks open redirects
       // to absolute URLs like https://evil.com)
@@ -100,45 +92,6 @@ export function LoginForm() {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
-          {/* Role Selector Tabs / Block */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Sign In As
-            </Label>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-muted/40 border border-border/40">
-              <button
-                type="button"
-                onClick={() => setSelectedRole(UserRole.CANDIDATE)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  selectedRole === UserRole.CANDIDATE
-                    ? 'bg-card text-foreground shadow-md border border-border/50'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <User className="h-4 w-4 text-primary" />
-                Candidate
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedRole(UserRole.INTERVIEWER)}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-                  selectedRole === UserRole.INTERVIEWER
-                    ? 'bg-card text-foreground shadow-md border border-border/50'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Briefcase className="h-4 w-4 text-indigo-400" />
-                Interviewer
-              </button>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              {selectedRole === UserRole.INTERVIEWER
-                ? 'Sign in to access your Interviewer Portal, manage sessions & earnings.'
-                : 'Sign in to browse interviewers, practice mock sessions & view roadmaps.'}
-            </p>
-          </div>
-
           {error && (
             <Alert variant="destructive" className="py-2.5">
               <AlertCircle className="h-4 w-4" />
@@ -151,7 +104,7 @@ export function LoginForm() {
             <Input
               id="email"
               type="email"
-              placeholder={selectedRole === UserRole.INTERVIEWER ? 'interviewer@example.com' : 'you@example.com'}
+              placeholder="you@example.com"
               autoComplete="email"
               disabled={loading}
               {...register('email')}
@@ -191,17 +144,15 @@ export function LoginForm() {
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
               </>
-            ) : selectedRole === UserRole.INTERVIEWER ? (
-              'Sign In as Interviewer'
             ) : (
-              'Sign In as Candidate'
+              'Sign In'
             )}
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Link
-              href={selectedRole === UserRole.INTERVIEWER ? '/register?role=interviewer' : '/register'}
+              href="/register"
               className="text-primary hover:underline font-medium"
             >
               Create an account

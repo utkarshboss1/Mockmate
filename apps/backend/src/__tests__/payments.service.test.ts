@@ -10,7 +10,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PaymentStatus, BookingStatus } from '@interviewiq/shared';
 
 process.env.NODE_ENV = 'development';
-process.env.STORAGE_MODE = 'memory';
 
 import { PaymentsService } from '../modules/payments/payments.service';
 import { env } from '../config/env';

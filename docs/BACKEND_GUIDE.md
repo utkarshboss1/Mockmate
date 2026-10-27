@@ -18,11 +18,10 @@ apps/backend/
     │       ├── <feature>.routes.ts       # URL/method and middleware composition
     │       ├── <feature>.controller.ts   # HTTP request/response adapter
     │       ├── <feature>.service.ts      # Business rules and coordination
-    │       ├── <feature>.repository.ts   # Database or mock data access
+│       ├── <feature>.repository.ts   # Database access
     │       └── <feature>.validator.ts   # Zod request schemas (where needed)
     ├── infrastructure/        # External-system adapters, currently AI/Groq
     ├── lib/                   # Shared clients and integrations (Prisma, auth, LiveKit, etc.)
-    ├── mockStore/             # In-memory stores used in explicit memory mode
     └── types/                 # Express request types and API response helpers
 ```
 
@@ -82,7 +81,7 @@ flowchart LR
 3. `booking.routes.ts` runs `requireAuth`, then `validate(createBookingSchema)`, then `BookingController.create`.
 4. `booking.controller.ts` passes the authenticated user's ID and validated body to `BookingService.createBooking` and returns the HTTP response.
 5. `booking.service.ts` checks domain rules: interviewer exists, candidate is not booking themself, time is offered, rate is valid, and payment/credit rules are satisfied.
-6. `booking.repository.ts` persists the booking through Prisma (or uses the explicitly selected mock store in memory mode).
+6. `booking.repository.ts` persists the booking through Prisma.
 7. The result travels back through the service and controller. If a layer throws an error, `next(error)` sends it to `error.middleware.ts` instead.
 
 That same path applies broadly: **router → middleware → controller → service → repository → model/database**. Not every route uses every middleware or every layer.

@@ -147,12 +147,6 @@ FRONTEND_URL=http://localhost:3000
 DATABASE_URL=postgresql://mockmate:mockmate@localhost:5432/mockmate?schema=public
 DIRECT_URL=postgresql://mockmate:mockmate@localhost:5432/mockmate?schema=public
 
-# Storage mode: "database" for real persistence (recommended),
-# "memory" for offline demo runs without a DB.
-# The selected mode stays fixed for the process. Database mode refuses
-# startup if PostgreSQL is unavailable; it never falls back to demo data.
-STORAGE_MODE=database
-
 # WebRTC & Real-time
 LIVEKIT_API_KEY=your_livekit_key
 LIVEKIT_API_SECRET=your_livekit_secret

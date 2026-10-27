@@ -3,38 +3,10 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
 import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
 import { Prisma } from '@prisma/client';
-import { mockBookingStore as bookingStore } from '../../mockStore/bookingStore';
-import { mockUserStore as userStore } from '../../mockStore/userStore';
 
-const SAMPLE_BOOKINGS = [
-  {
-    id: 'b_1',
-    candidateId: 'candidate_1',
-    interviewerProfileId: 'int_1',
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-    durationMinutes: 60,
-    interviewType: 'TECHNICAL_CODING',
-    status: 'CONFIRMED',
-    totalAmountPaise: 150000,
-    platformFeePaise: 22500,
-    interviewerPayoutPaise: 127500,
-    paymentDueAt: null,
-    notes: 'Please review Graph BFS/DFS before the session.',
-    candidate: { id: 'candidate_1', name: 'Mock Candidate', email: 'candidate@mock.com', avatar: null },
-    interviewerProfile: {
-      id: 'int_1',
-      user: { id: 'u_1', name: 'Aarav Sharma', email: 'aarav@mock.com', avatar: null }
-    },
-    payment: { id: 'p_1', status: 'SUCCEEDED' },
-    interview: { id: 'i_1', status: 'ACTIVE', roomName: 'room_1' },
-    feedback: null,
-    review: null
-  }
-];
 
 // Statuses that make an interviewer's slot unavailable to new bookings.
 // EXPIRED bookings release their slot (payment never completed).
@@ -47,13 +19,6 @@ const SLOT_BLOCKING_STATUSES = [
 
 export class BookingRepository {
   async getInterviewerProfileById(id: string) {
-    if (isMockStorage()) {
-      return {
-        id,
-        pricePerHour: 150000,
-        user: { name: 'Aarav Sharma', email: 'aarav@mock.com' }
-      } as any;
-    }
     return prisma.interviewerProfile.findUnique({
       where: { id },
       include: {
@@ -63,9 +28,6 @@ export class BookingRepository {
   }
 
   async getInterviewerProfileByUserId(userId: string) {
-    if (isMockStorage()) {
-      return { id: 'int_1', userId };
-    }
     return prisma.interviewerProfile.findUnique({
       where: { userId },
     });
@@ -86,38 +48,6 @@ export class BookingRepository {
   ) {
     const isCreditBooking = Boolean(options?.useCredit);
     const initialStatus = isCreditBooking ? BookingStatus.CONFIRMED : BookingStatus.PENDING;
-
-    if (isMockStorage()) {
-      const user = userStore.findUserById(candidateId);
-      const stored = bookingStore.saveBooking({
-        id: `b_${Date.now()}`,
-        candidateId,
-        interviewerProfileId: input.interviewerProfileId,
-        scheduledAt: new Date(input.scheduledAt),
-        durationMinutes: 60,
-        interviewType: input.interviewType,
-        status: initialStatus,
-        totalAmountPaise: isCreditBooking ? 0 : financials.totalAmountPaise,
-        platformFeePaise: isCreditBooking ? 0 : financials.platformFeePaise,
-        interviewerPayoutPaise: financials.interviewerPayoutPaise,
-        paymentDueAt: financials.paymentDueAt,
-        notes: input.notes || null,
-        candidate: {
-          id: candidateId,
-          name: user?.name || 'Candidate',
-          email: user?.email || 'candidate@mock.com',
-          avatar: null,
-        },
-        interviewerProfile: {
-          id: input.interviewerProfileId,
-          userId: 'int_u_1',
-          user: { id: 'int_u_1', name: 'Interviewer', email: 'interviewer@mock.com', avatar: null },
-        },
-        payment: null,
-        interview: null,
-      });
-      return stored as any;
-    }
 
     const requestedStart = new Date(input.scheduledAt);
     const DURATION_MINUTES = 60;
@@ -211,31 +141,6 @@ export class BookingRepository {
   }
 
   async getCandidateBookings(candidateId: string, query: GetBookingsQueryInput) {
-    if (isMockStorage()) {
-      const userBookings = bookingStore.findBookingsByCandidate(candidateId);
-      if (userBookings.length > 0) {
-        return { total: userBookings.length, items: userBookings as any };
-      }
-
-      // If user has not created any bookings yet, attribute the demo booking
-      // to this candidate so they can test viewing, paying, and cancelling it.
-      let sample = bookingStore.findBookingById('b_1');
-      if (!sample) {
-        const user = userStore.findUserById(candidateId);
-        sample = bookingStore.saveBooking({
-          ...SAMPLE_BOOKINGS[0],
-          candidateId,
-          candidate: {
-            id: candidateId,
-            name: user?.name || 'Mock Candidate',
-            email: user?.email || 'candidate@mock.com',
-            avatar: null,
-          },
-        } as any);
-      }
-      return { total: 1, items: [sample] as any };
-    }
-
     const { status, page, limit } = query;
     const where: any = { candidateId };
     if (status) where.status = status;
@@ -267,17 +172,6 @@ export class BookingRepository {
   }
 
   async getInterviewerBookings(interviewerProfileId: string, query: GetBookingsQueryInput) {
-    if (isMockStorage()) {
-      const interviewerBookings = bookingStore.findBookingsByInterviewer(interviewerProfileId);
-      if (interviewerBookings.length > 0) {
-        return { total: interviewerBookings.length, items: interviewerBookings as any };
-      }
-      if (interviewerProfileId === 'int_1') {
-        return { total: SAMPLE_BOOKINGS.length, items: SAMPLE_BOOKINGS as any };
-      }
-      return { total: 0, items: [] };
-    }
-
     const { status, page, limit } = query;
     const where: any = { interviewerProfileId };
     if (status) where.status = status;
@@ -304,12 +198,6 @@ export class BookingRepository {
   }
 
   async getBookingById(id: string) {
-    if (isMockStorage()) {
-      const stored = bookingStore.findBookingById(id);
-      if (stored) return stored as any;
-      return SAMPLE_BOOKINGS.find((b) => b.id === id) as any || null;
-    }
-
     return prisma.booking.findUnique({
       where: { id },
       include: {
@@ -328,21 +216,6 @@ export class BookingRepository {
   }
 
   async updateBookingStatus(id: string, status: BookingStatus, notes?: string) {
-    if (isMockStorage()) {
-      const updated = bookingStore.updateBookingStatus(id, status, notes);
-      if (updated) {
-        return updated as any;
-      }
-      const sample = SAMPLE_BOOKINGS.find((b) => b.id === id) || SAMPLE_BOOKINGS[0];
-      const saved = bookingStore.saveBooking({
-        ...sample,
-        id,
-        status,
-        notes: notes || sample.notes,
-      } as any);
-      return saved as any;
-    }
-
     return prisma.booking.update({
       where: { id },
       data: {

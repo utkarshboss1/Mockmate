@@ -1,13 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.hoisted(() => {
-  process.env.STORAGE_MODE = 'database';
-});
-
 import { prisma } from '../lib/prisma';
 import { AvailabilityRepository } from '../modules/availability/availability.repository';
 
-describe('AvailabilityRepository database mode', () => {
+describe('AvailabilityRepository', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('returns no slots when an interviewer has no real availability', async () => {

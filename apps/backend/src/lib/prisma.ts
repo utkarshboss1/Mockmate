@@ -1,10 +1,7 @@
 // ============================================================
 // prisma.ts — Prisma Client Singleton + Connection Probe
 //
-// The Prisma client is always instantiated so imports don't need
-// to be conditional. Repository selection is controlled only by
-// STORAGE_MODE in mockStore/mode; connection checks never switch
-// the app to sample data.
+// Prisma is the only persistence adapter used by the backend.
 // ============================================================
 
 import { PrismaClient } from '@prisma/client';
@@ -23,8 +20,8 @@ if (env.NODE_ENV !== 'production') {
 }
 
 /**
- * Checks database availability during startup. Repositories use the
- * configured storage mode and do not fall back when this check fails later.
+ * Checks PostgreSQL availability during startup. The API does not start
+ * without a working database connection.
  */
 export async function checkDbConnection(maxRetries = 3): Promise<boolean> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {

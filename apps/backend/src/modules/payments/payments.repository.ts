@@ -3,20 +3,10 @@
 // ============================================================
 
 import { prisma } from '../../lib/prisma';
-import { isMockStorage } from '../../mockStore/mode';
 import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
-import { mockBookingStore as bookingStore } from '../../mockStore/bookingStore';
 
 export class PaymentsRepository {
   async getBookingWithCandidateAndInterviewer(bookingId: string) {
-    if (isMockStorage()) {
-      const stored = bookingStore.findBookingById(bookingId);
-      if (stored) {
-        return stored as any;
-      }
-      return null;
-    }
-
     return prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -39,10 +29,6 @@ export class PaymentsRepository {
     razorpayOrderId: string,
     amountPaise: number,
   ) {
-    if (isMockStorage()) {
-      return { id: 'pay_1', bookingId, razorpayOrderId, amountPaise, status: PaymentStatus.PENDING } as any;
-    }
-
     return prisma.payment.upsert({
       where: { bookingId },
       create: {
@@ -61,9 +47,6 @@ export class PaymentsRepository {
   }
 
   async findPaymentByOrderId(razorpayOrderId: string) {
-    if (isMockStorage()) {
-      return null;
-    }
     return prisma.payment.findUnique({
       where: { razorpayOrderId },
       include: {
@@ -84,19 +67,6 @@ export class PaymentsRepository {
     razorpayPaymentId: string,
     amountPaise: number,
   ) {
-    if (isMockStorage()) {
-      return {
-        booking: {
-          id: bookingId,
-          candidateId: 'candidate_1',
-          scheduledAt: new Date(),
-          status: BookingStatus.CONFIRMED,
-        },
-        payment: { id: 'pay_1', status: PaymentStatus.SUCCEEDED },
-        interview: { id: 'int_1', roomName: 'room_1' }
-      } as any;
-    }
-
     return prisma.$transaction(async (tx: any) => {
       // 1. Update Payment status to SUCCEEDED (bounded to this booking)
       const payment = await tx.payment.update({
@@ -133,10 +103,6 @@ export class PaymentsRepository {
    * Used when payment.captured arrives without a client-side verify round-trip.
    */
   async confirmPaymentByOrderId(razorpayOrderId: string, razorpayPaymentId: string) {
-    if (isMockStorage()) {
-      return null;
-    }
-
     return prisma.$transaction(async (tx: any) => {
       const payment = await tx.payment.update({
         where: { razorpayOrderId },
@@ -170,9 +136,6 @@ export class PaymentsRepository {
   }
 
   async markPaymentFailedByOrderId(razorpayOrderId: string) {
-    if (isMockStorage()) {
-      return null;
-    }
     return prisma.payment.update({
       where: { razorpayOrderId },
       data: { status: PaymentStatus.FAILED },

@@ -3,10 +3,6 @@ import { InterviewType } from '@interviewiq/shared';
 import { AIService } from '../modules/ai/ai.service';
 import { AIProvider } from '../infrastructure/ai/ai-provider';
 
-vi.hoisted(() => {
-  process.env.STORAGE_MODE = 'memory';
-});
-
 afterEach(() => vi.restoreAllMocks());
 
 describe('AIService provider output handling', () => {

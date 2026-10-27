@@ -9,6 +9,12 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const isProduction = process.env.NODE_ENV === 'production';
+const postgresUrlSchema = z
+  .string()
+  .url('Must be a valid PostgreSQL URL')
+  .refine((url) => url.startsWith('postgresql://') || url.startsWith('postgres://'), {
+    message: 'Must use the postgresql:// or postgres:// scheme',
+  });
 
 const envSchema = z.object({
   // App
@@ -17,14 +23,8 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
 
   // Database
-  DATABASE_URL: z.string().default('postgresql://mockmate:mockmate@localhost:5432/mockmate?schema=public'),
-
-  // Storage mode
-  // - "memory"   : in-process Maps. Lets the app boot and run end-to-end
-  //                without a reachable DB. Used on college IPv4 LANs.
-  // - "database" : every read/write goes through Prisma. Fails fast if DB is
-  //                unreachable. This is the only mode allowed in production.
-  STORAGE_MODE: z.enum(['memory', 'database']).default('memory'),
+  DATABASE_URL: postgresUrlSchema,
+  DIRECT_URL: postgresUrlSchema,
 
   // Better Auth
   BETTER_AUTH_SECRET: z
@@ -58,17 +58,6 @@ const envSchema = z.object({
   // Redis (Socket.IO adapter, rate-limit store)
   REDIS_URL: z.string().default(''),
 
-  DIRECT_URL: z.string().default(''),
-
-  // Dev-only escape hatch. In production this must be false; mock
-  // tokens (`mock-token-admin`, etc.) must never authenticate anyone.
-  ALLOW_MOCK_AUTH: z
-    .string()
-    .default('true')
-    .transform((val) => val === 'true')
-    .refine((val) => isProduction ? !val : true, {
-      message: 'ALLOW_MOCK_AUTH must be false in production',
-    }),
 });
 
 // Production must never boot on development defaults. Any of these falling
@@ -87,16 +76,6 @@ const INSECURE_PRODUCTION_DEFAULTS: Array<[keyof z.infer<typeof envSchema>, stri
 const parsed = envSchema
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') return;
-
-    // Memory storage must never run in production — it has no persistence
-    // and would silently drop every user, booking, and payment on restart.
-    if (data.STORAGE_MODE === 'memory') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['STORAGE_MODE'],
-        message: 'STORAGE_MODE="memory" is not allowed in production. Use "database".',
-      });
-    }
 
     for (const [key, forbidden] of INSECURE_PRODUCTION_DEFAULTS) {
       if (!data[key] || forbidden.includes(data[key] as string)) {

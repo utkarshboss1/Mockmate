@@ -14,23 +14,13 @@ import { startLifecycleSchedulers } from './lib/schedulers';
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 async function bootstrap() {
-  // The selected storage mode is fixed for this process. A database outage
-  // must never switch repositories to sample data midway through a session.
-  const dbConnected = env.STORAGE_MODE === 'database' ? await checkDbConnection() : false;
-
-  if (env.STORAGE_MODE === 'database' && !dbConnected) {
-    console.error('❌ STORAGE_MODE is "database", but PostgreSQL is unreachable. Refusing to start.');
+  const dbConnected = await checkDbConnection();
+  if (!dbConnected) {
+    console.error('PostgreSQL is unreachable. Refusing to start.');
     process.exit(1);
   }
 
-  if (env.STORAGE_MODE === 'database') {
-    console.log('✅ PostgreSQL Supabase Database connected successfully!');
-  } else {
-    console.warn(
-      `\n⚠️ STORAGE_MODE is "memory". This process will use in-memory demo data.`,
-    );
-    console.warn('   Database connectivity will not change the selected storage mode.\n');
-  }
+  console.log('PostgreSQL connected successfully.');
 
   // 2. Create Express app
   const app = createApp();
@@ -45,7 +35,7 @@ async function bootstrap() {
 
   // 6. Start listening
   server.listen(env.PORT, () => {
-    console.log(`\n🚀 InterviewIQ Backend Server Running`);
+    console.log(`\n InterviewIQ Backend Server Running`);
     console.log(`   Environment : ${env.NODE_ENV}`);
     console.log(`   Server      : http://localhost:${env.PORT}`);
     console.log(`   Health      : http://localhost:${env.PORT}/health`);
