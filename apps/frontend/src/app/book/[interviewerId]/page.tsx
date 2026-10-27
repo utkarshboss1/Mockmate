@@ -19,6 +19,10 @@ export default function BookPage({ params }: { params: Promise<{ interviewerId: 
 
   // Redirect if not logged in
   useEffect(() => {
+    if (!sessionLoading && user?.role === 'INTERVIEWER') {
+      router.replace('/interviewer/dashboard');
+      return;
+    }
     if (!sessionLoading && !user) {
       router.push(`/login?redirect=/book/${interviewerId}`);
     }
@@ -39,6 +43,8 @@ export default function BookPage({ params }: { params: Promise<{ interviewerId: 
 
     fetchInterviewer();
   }, [interviewerId]);
+
+  if (sessionLoading || user?.role === 'INTERVIEWER') return null;
 
   if (sessionLoading || loading) {
     return (

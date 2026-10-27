@@ -10,7 +10,8 @@
 // overlapping runs are harmless.
 // ============================================================
 
-import { prisma, isDbConnected } from '../lib/prisma';
+import { prisma } from './prisma';
+import { isMockStorage } from '../mockStore/mode';
 import { BookingStatus, InterviewStatus } from '@interviewiq/shared';
 
 const SWEEP_INTERVAL_MS = 60 * 1000; // every minute
@@ -68,7 +69,7 @@ async function markNoShows(): Promise<number> {
 }
 
 export function startLifecycleSchedulers(): { stop: () => void } {
-  if (!isDbConnected()) {
+  if (isMockStorage()) {
     // Memory mode has no persistence — lifecycle sweeps are meaningless there.
     return { stop: () => {} };
   }

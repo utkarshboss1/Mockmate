@@ -11,24 +11,25 @@ import { env } from './config/env';
 import { prisma, checkDbConnection } from './lib/prisma';
 import { startLifecycleSchedulers } from './lib/schedulers';
 
-const DB_PING_INTERVAL_MS = 30_000;
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 async function bootstrap() {
-  // 1. Database connection check
-  const dbConnected = await checkDbConnection();
+  // The selected storage mode is fixed for this process. A database outage
+  // must never switch repositories to sample data midway through a session.
+  const dbConnected = env.STORAGE_MODE === 'database' ? await checkDbConnection() : false;
 
-  if (dbConnected) {
-    console.log('✅ PostgreSQL Supabase Database connected successfully!');
-  } else if (env.NODE_ENV === 'production') {
-    // Serving fake data in production would mask outages as success — fail fast.
-    console.error('❌ Database unreachable in production. Refusing to start.');
+  if (env.STORAGE_MODE === 'database' && !dbConnected) {
+    console.error('❌ STORAGE_MODE is "database", but PostgreSQL is unreachable. Refusing to start.');
     process.exit(1);
+  }
+
+  if (env.STORAGE_MODE === 'database') {
+    console.log('✅ PostgreSQL Supabase Database connected successfully!');
   } else {
     console.warn(
-      `\n⚠️ Database connection warning: Could not connect to PostgreSQL.`,
+      `\n⚠️ STORAGE_MODE is "memory". This process will use in-memory demo data.`,
     );
-    console.warn('   Using resilient Mock Mode for offline development.\n');
+    console.warn('   Database connectivity will not change the selected storage mode.\n');
   }
 
   // 2. Create Express app
@@ -39,13 +40,7 @@ async function bootstrap() {
   const { initSocketServer } = await import('./lib/socket');
   const io = initSocketServer(server);
 
-  // 4. Keep the DB connection flag fresh (dev resilience only)
-  const dbPingTimer =
-    env.NODE_ENV !== 'production'
-      ? setInterval(() => void checkDbConnection(), DB_PING_INTERVAL_MS)
-      : null;
-
-  // 5. Booking lifecycle scheduler (PENDING TTL expiry, completions, no-shows)
+  // 4. Booking lifecycle scheduler (PENDING TTL expiry, completions, no-shows)
   const scheduler = startLifecycleSchedulers();
 
   // 6. Start listening
@@ -64,7 +59,6 @@ async function bootstrap() {
     isShuttingDown = true;
 
     console.log(`\n${signal} received. Shutting down gracefully...`);
-    if (dbPingTimer) clearInterval(dbPingTimer);
     scheduler.stop();
 
     // Stop accepting new connections (HTTP + WebSocket), then drain

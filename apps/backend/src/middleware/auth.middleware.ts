@@ -7,7 +7,8 @@ import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from '../lib/auth';
 import { errors } from './error.middleware';
 import { UserRole, UserStatus } from '@interviewiq/shared';
-import { prisma, isDbConnected } from '../lib/prisma';
+import { prisma } from '../lib/prisma';
+import { isMockStorage } from '../mockStore/mode';
 import { env } from '../config/env';
 import { mockUserStore as userStore } from '../mockStore/userStore';
 
@@ -38,7 +39,7 @@ export async function requireAuth(
     // Fallback for explicit sample mock tokens if database is offline.
     // Restricted to exact, non-guessable dev-only tokens — never match on
     // substrings of the header (a real token could contain "admin").
-    if (!isDbConnected() && env.NODE_ENV !== 'production' && env.ALLOW_MOCK_AUTH) {
+    if (isMockStorage() && env.NODE_ENV !== 'production' && env.ALLOW_MOCK_AUTH) {
       const MOCK_TOKENS: Record<string, { role: UserRole; name: string; id: string }> = {
         'mock-token-admin': { role: UserRole.ADMIN, name: 'Mock Admin', id: 'admin_1' },
         'mock-token-interviewer': {

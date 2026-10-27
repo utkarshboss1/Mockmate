@@ -5,7 +5,7 @@
 import { feedbackRepository, FeedbackRepository } from './feedback.repository';
 import { CreateFeedbackInput, CreateReviewInput } from './feedback.validator';
 import { errors } from '../../middleware/error.middleware';
-import { UserRole } from '@interviewiq/shared';
+import { BookingStatus, InterviewStatus, UserRole } from '@interviewiq/shared';
 
 export class FeedbackService {
   constructor(private repository: FeedbackRepository) {}
@@ -19,6 +19,13 @@ export class FeedbackService {
     const isInterviewer = booking.interviewerProfile.user.id === userId;
     if (!isInterviewer) {
       throw errors.forbidden('Only the assigned interviewer can submit feedback for this session');
+    }
+
+    if (
+      (booking.status !== BookingStatus.CONFIRMED && booking.status !== BookingStatus.COMPLETED) ||
+      booking.interview?.status !== InterviewStatus.ENDED
+    ) {
+      throw errors.conflict('Feedback can only be submitted after the interview has ended');
     }
 
     const feedback = await this.repository.createFeedback(
@@ -52,6 +59,13 @@ export class FeedbackService {
 
     if (booking.candidateId !== candidateId) {
       throw errors.forbidden('Only the candidate who completed this session can leave a review');
+    }
+
+    if (
+      booking.status !== BookingStatus.COMPLETED ||
+      booking.interview?.status !== InterviewStatus.ENDED
+    ) {
+      throw errors.conflict('A review can only be submitted for a completed interview');
     }
 
     if (booking.review) {

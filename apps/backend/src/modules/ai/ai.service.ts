@@ -2,20 +2,21 @@
 // ai.service.ts — AI Business Logic Layer (Groq LLaMA 3.3 70B)
 // ============================================================
 
-import { groq, GROQ_MODEL } from '../../lib/groq';
-import { env } from '../../config/env';
-import { PolishFeedbackInput, PrepAdvisorInput } from './ai.validator';
-import { prisma, isDbConnected } from '../../lib/prisma';
-import { errors } from '../../middleware/error.middleware';
+import {
+  PolishFeedbackInput,
+  PrepAdvisorInput,
+  polishedFeedbackOutputSchema,
+  prepAdvisorOutputSchema,
+} from './ai.validator';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
+import { AIProvider } from '../../infrastructure/ai/ai-provider';
+import { GroqAIProvider } from '../../infrastructure/ai/groq-ai.provider';
 
 export class AIService {
-  async polishFeedback(input: PolishFeedbackInput) {
-    if (!env.GROQ_API_KEY) {
-      throw errors.internal(
-        'AI feedback is not configured (GROQ_API_KEY missing) — please retry later or write the scorecard manually.',
-      );
-    }
+  constructor(private provider: AIProvider = new GroqAIProvider()) {}
 
+  async polishFeedback(input: PolishFeedbackInput) {
     const prompt = `You are a Senior Staff Software Engineer and Technical Interviewer at a top tier tech company.
 Analyze the following raw interview notes taken during a ${input.interviewType.replace('_', ' ')} mock interview session and refine them into a professional evaluation scorecard.
 
@@ -31,32 +32,23 @@ Respond STRICTLY in raw JSON format (without markdown codeblock syntax) matching
 }`;
 
     try {
-      const response = await groq.chat.completions.create({
-        messages: [{ role: 'user', content: prompt }],
-        model: GROQ_MODEL,
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-      });
-
-      const text = response.choices[0]?.message?.content || '{}';
-      return JSON.parse(text);
+      const text = await this.provider.completeJSON(prompt, 0.3);
+      return polishedFeedbackOutputSchema.parse(JSON.parse(text));
     } catch (error) {
       console.error('Groq AI feedback polish failed:', error);
-      throw errors.internal(
-        'AI feedback generation failed — please write the scorecard manually and retry AI polish later.',
-      );
+      return {
+        professionalSummary: `AI polish was unavailable. Use these interview notes to complete the evaluation: ${input.rawNotes}`,
+        strengths: ['Add observed strengths from the interview notes.'],
+        weaknesses: ['Add specific improvement areas observed during the interview.'],
+        learningRecommendations: ['Add one practice exercise tied to the feedback.'],
+        usedFallback: true,
+      };
     }
   }
 
   async generatePrepAdvisor(userId: string, input: PrepAdvisorInput) {
-    if (!env.GROQ_API_KEY) {
-      throw errors.internal(
-        'AI advisor is not configured (GROQ_API_KEY missing) — ask the operator to set it and retry.',
-      );
-    }
-
     // Query candidate's past interview scorecards to personalize advice
-    const pastBookings = isDbConnected()
+    const pastBookings = !isMockStorage()
       ? await prisma.booking.findMany({
           where: { candidateId: userId, status: 'COMPLETED' },
           take: 3,
@@ -90,26 +82,21 @@ Respond STRICTLY in raw JSON format matching this structure:
 }`;
 
     try {
-      const response = await groq.chat.completions.create({
-        messages: [{ role: 'user', content: prompt }],
-        model: GROQ_MODEL,
-        temperature: 0.4,
-        response_format: { type: 'json_object' },
-      });
-
-      const text = response.choices[0]?.message?.content || '{}';
-      const parsed = JSON.parse(text);
-
-      // Sanity check: a roadmap without weeklyPlan is not a roadmap.
-      if (!Array.isArray(parsed.weeklyPlan) || parsed.weeklyPlan.length === 0) {
-        throw new Error('Model response missing weeklyPlan');
-      }
-      return parsed;
+      const text = await this.provider.completeJSON(prompt, 0.4);
+      return prepAdvisorOutputSchema.parse(JSON.parse(text));
     } catch (error) {
       console.error('Groq AI prep advisor failed:', error);
-      throw errors.internal(
-        'AI roadmap generation failed — please retry in a moment.',
-      );
+      return {
+        targetRole: input.targetRole,
+        weeklyPlan: [
+          { week: 1, focus: 'Role fundamentals', tasks: ['List core skills for the target role.', 'Review one foundational topic each day.'] },
+          { week: 2, focus: 'Problem solving', tasks: ['Practice timed role-relevant problems.', 'Write down and review missed edge cases.'] },
+          { week: 3, focus: 'System and communication', tasks: ['Practice explaining a solution aloud.', 'Review a design or project relevant to the role.'] },
+          { week: 4, focus: 'Interview practice', tasks: ['Complete a full mock interview.', 'Review gaps and prepare concise examples.'] },
+        ],
+        topStrategyTips: ['Keep a short log of mistakes and revisit it daily.', 'Practice explaining tradeoffs clearly.', 'Reserve time for rest before interview day.'],
+        usedFallback: true,
+      };
     }
   }
 }

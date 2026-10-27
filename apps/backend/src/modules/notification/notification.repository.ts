@@ -2,12 +2,13 @@
 // notification.repository.ts — Database Access for Notifications
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { NotificationType } from '@interviewiq/shared';
 
 export class NotificationRepository {
   async getUserNotifications(userId: string) {
-    if (!isDbConnected()) return [];
+    if (isMockStorage()) return [];
 
     return prisma.notification.findMany({
       where: { userId },
@@ -17,7 +18,7 @@ export class NotificationRepository {
   }
 
   async getUnreadCount(userId: string) {
-    if (!isDbConnected()) return 0;
+    if (isMockStorage()) return 0;
 
     return prisma.notification.count({
       where: { userId, isRead: false },
@@ -31,7 +32,7 @@ export class NotificationRepository {
     message: string;
     linkUrl?: string;
   }) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: `notif_${Date.now()}`,
         userId: data.userId,
@@ -55,7 +56,7 @@ export class NotificationRepository {
   }
 
   async markAsRead(id: string, userId: string) {
-    if (!isDbConnected()) return { count: 1 };
+    if (isMockStorage()) return { count: 1 };
 
     return prisma.notification.updateMany({
       where: { id, userId },
@@ -64,7 +65,7 @@ export class NotificationRepository {
   }
 
   async markAllAsRead(userId: string) {
-    if (!isDbConnected()) return { count: 0 };
+    if (isMockStorage()) return { count: 0 };
 
     return prisma.notification.updateMany({
       where: { userId, isRead: false },

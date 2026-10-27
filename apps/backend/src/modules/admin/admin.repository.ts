@@ -2,13 +2,14 @@
 // admin.repository.ts — Database Access for Admin & Analytics
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { AdminUserQueryInput } from './admin.validator';
 import { UserRole, UserStatus, BookingStatus } from '@interviewiq/shared';
 
 export class AdminRepository {
   async getAnalyticsOverview() {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         totalUsers: 142,
         totalCandidates: 110,
@@ -54,8 +55,8 @@ export class AdminRepository {
   }
 
   async listUsers(input: AdminUserQueryInput) {
-    if (!isDbConnected()) {
-      const mockUsers = [
+    if (isMockStorage()) {
+      const mockUsers: any[] = [
         {
           id: 'usr_cand_1',
           name: 'Alex Johnson',
@@ -71,6 +72,7 @@ export class AdminRepository {
           email: 'priya@example.com',
           role: UserRole.INTERVIEWER,
           status: UserStatus.ACTIVE,
+          interviewerProfile: { id: 'int_mock_1', isVerified: false, headline: 'Software Engineer', bio: 'Mock interviewer profile', pricePerHour: 1500 },
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -106,6 +108,9 @@ export class AdminRepository {
           status: true,
           createdAt: true,
           updatedAt: true,
+          interviewerProfile: {
+            select: { id: true, isVerified: true, headline: true, bio: true, pricePerHour: true },
+          },
         },
       }),
     ]);
@@ -114,7 +119,7 @@ export class AdminRepository {
   }
 
   async updateUserStatus(userId: string, status: UserStatus) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: userId,
         name: 'Mock User',
@@ -145,7 +150,7 @@ export class AdminRepository {
     interviewerProfileId: string,
     isVerified: boolean,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { id: interviewerProfileId, isVerified, verifiedAt: isVerified ? new Date() : null };
     }
 

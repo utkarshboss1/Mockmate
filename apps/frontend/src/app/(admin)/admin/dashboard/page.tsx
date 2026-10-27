@@ -31,6 +31,7 @@ interface AdminUserRow {
   role: string;
   status: string;
   createdAt: string;
+  interviewerProfile?: { id: string; isVerified: boolean; headline: string; bio: string; pricePerHour: number } | null;
 }
 
 export default function AdminDashboardPage() {
@@ -77,6 +78,21 @@ export default function AdminDashboardPage() {
       await api.patch(`/admin/users/${userId}/status`, { status: newStatus });
       setUsers(users.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
       toast.success(`User ${newStatus === UserStatus.ACTIVE ? 'reactivated' : 'suspended'}`);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const toggleInterviewerVerification = async (row: AdminUserRow) => {
+    const profile = row.interviewerProfile;
+    if (!profile) return;
+    try {
+      const isVerified = !profile.isVerified;
+      await api.patch(`/admin/interviewers/${profile.id}/verify`, { isVerified });
+      setUsers((current) => current.map((user) => user.id === row.id
+        ? { ...user, interviewerProfile: { ...profile, isVerified } }
+        : user));
+      toast.success(isVerified ? 'Interviewer approved and visible to candidates' : 'Interviewer listing hidden');
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -186,6 +202,7 @@ export default function AdminDashboardPage() {
                 <th className="p-3">Email</th>
                 <th className="p-3">Role</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Listing</th>
                 <th className="p-3">Joined</th>
                 <th className="p-3 text-right pr-4">Action</th>
               </tr>
@@ -211,8 +228,25 @@ export default function AdminDashboardPage() {
                       </Badge>
                     )}
                   </td>
+                  <td className="p-3">
+                    {u.role === 'INTERVIEWER' && u.interviewerProfile ? (
+                      <Badge className={u.interviewerProfile.isVerified ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px]'}>
+                        {u.interviewerProfile.isVerified ? 'Visible' : 'Pending review'}
+                      </Badge>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="p-3 text-muted-foreground">{formatDateTime(u.createdAt)}</td>
                   <td className="p-3 text-right pr-4">
+                    {u.role === 'INTERVIEWER' && u.interviewerProfile && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleInterviewerVerification(u)}
+                        className="h-7 text-[11px] mr-2"
+                      >
+                        {u.interviewerProfile.isVerified ? 'Hide listing' : 'Approve listing'}
+                      </Button>
+                    )}
                     <Button
                       variant={u.status === 'SUSPENDED' ? 'outline' : 'destructive'}
                       size="sm"

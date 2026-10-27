@@ -10,11 +10,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, Briefcase, Award, CheckCircle2, ArrowRight, Calendar, ExternalLink, ArrowLeft } from 'lucide-react';
 import { formatCurrency, getInitials } from '@/lib/utils';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function InterviewerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [interviewer, setInterviewer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && user?.role === 'INTERVIEWER') router.replace('/interviewer/dashboard');
+  }, [authLoading, user, router]);
 
   useEffect(() => {
     async function fetchInterviewer() {
@@ -31,6 +39,8 @@ export default function InterviewerDetailPage({ params }: { params: Promise<{ id
 
     fetchInterviewer();
   }, [id]);
+
+  if (authLoading || user?.role === 'INTERVIEWER') return null;
 
   if (loading) {
     return (

@@ -2,9 +2,10 @@
 // feedback.repository.ts — Database Access for Feedback & Reviews
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { CreateFeedbackInput, CreateReviewInput } from './feedback.validator';
-import { BookingStatus } from '@interviewiq/shared';
+import { BookingStatus, InterviewStatus } from '@interviewiq/shared';
 
 export class FeedbackRepository {
   /**
@@ -12,7 +13,7 @@ export class FeedbackRepository {
    * to COMPLETED. Idempotent: re-submission keeps the terminal state.
    */
   async markBookingCompleted(bookingId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { id: bookingId, status: BookingStatus.COMPLETED } as any;
     }
     return prisma.booking.update({
@@ -22,10 +23,11 @@ export class FeedbackRepository {
   }
 
   async getBookingWithUsers(bookingId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: bookingId,
         candidateId: 'candidate_1',
+        status: BookingStatus.COMPLETED,
         candidate: { id: 'candidate_1', name: 'Alex Johnson', email: 'alex@example.com' },
         interviewerProfileId: 'int_1',
         interviewerProfile: {
@@ -33,6 +35,7 @@ export class FeedbackRepository {
           userId: 'usr_int_1',
           user: { id: 'usr_int_1', name: 'Priya Sharma', email: 'priya@example.com' },
         },
+        interview: { status: InterviewStatus.ENDED },
         feedback: null,
         review: null,
       };
@@ -41,6 +44,7 @@ export class FeedbackRepository {
     return prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
+        interview: { select: { status: true } },
         candidate: { select: { id: true, name: true, email: true } },
         interviewerProfile: {
           include: { user: { select: { id: true, name: true, email: true } } },
@@ -56,7 +60,7 @@ export class FeedbackRepository {
     candidateId: string,
     input: CreateFeedbackInput,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: `fb_${Date.now()}`,
         bookingId: input.bookingId,
@@ -113,7 +117,7 @@ export class FeedbackRepository {
     interviewerProfileId: string,
     input: CreateReviewInput,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: `rev_${Date.now()}`,
         bookingId: input.bookingId,
@@ -162,7 +166,7 @@ export class FeedbackRepository {
   }
 
   async getFeedbackByBookingId(bookingId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: `fb_mock_1`,
         bookingId,

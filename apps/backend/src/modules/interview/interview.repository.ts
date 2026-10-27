@@ -2,7 +2,8 @@
 // interview.repository.ts — Database Access for Interviews
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { InterviewStatus } from '@interviewiq/shared';
 
 const SAMPLE_INTERVIEW = {
@@ -25,7 +26,7 @@ const SAMPLE_INTERVIEW = {
 
 export class InterviewRepository {
   async getInterviewById(id: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { ...SAMPLE_INTERVIEW, id } as any;
     }
 
@@ -45,7 +46,7 @@ export class InterviewRepository {
   }
 
   async getInterviewByBookingId(bookingId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { ...SAMPLE_INTERVIEW, bookingId } as any;
     }
 
@@ -55,7 +56,7 @@ export class InterviewRepository {
   }
 
   async updateInterviewStatus(id: string, status: InterviewStatus, timestampField?: 'startedAt' | 'endedAt') {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { ...SAMPLE_INTERVIEW, id, status } as any;
     }
 
@@ -70,7 +71,7 @@ export class InterviewRepository {
   }
 
   async getMessagesByInterviewId(interviewId: string) {
-    if (!isDbConnected()) return [];
+    if (isMockStorage()) return [];
 
     return prisma.message.findMany({
       where: { interviewId },
@@ -83,7 +84,7 @@ export class InterviewRepository {
     content: string,
     language?: string,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { interviewId, content, language: language || 'javascript' } as any;
     }
 

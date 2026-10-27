@@ -19,6 +19,8 @@ Candidates practice Data Structures & Algorithms, System Design, Frontend, Backe
 
 > **Note:** This is a portfolio project. Payments run in Razorpay **test mode** — no real money moves. The payment flow (order creation → client checkout → signature verification → webhook confirmation) is fully implemented and testable end-to-end.
 
+> **Subscription status:** Razorpay is used for individual booking payments. Subscription plans are informational only; checkout and subscription billing are not implemented. Credits are not granted through an API-only purchase request.
+
 ---
 
 ## ✨ Key Features
@@ -30,7 +32,7 @@ Candidates practice Data Structures & Algorithms, System Design, Frontend, Backe
   - Sub-second HD WebRTC video and audio conferencing (powered by LiveKit).
   - Collaborative **Monaco Code Editor** (VS Code engine) with multi-language support (Python, JavaScript, TypeScript, C++, Java, Go, SQL) and real-time Socket.IO synchronization.
 - **Early-Join Waiting Lobby**: Room tokens are issued at most 10 minutes before scheduled start, with a live countdown.
-- **Actionable AI Scorecards**: Structured evaluation rubrics and personalized 4-week study roadmaps (Groq · LLaMA 3.3 70B), with a deterministic fallback if the AI call fails.
+- **Actionable AI Scorecards**: Structured evaluation rubrics and personalized 4-week study roadmaps powered by Groq. Model output is schema-validated, with deterministic guidance returned when the provider is unavailable or responds with invalid JSON.
 
 ### 💼 Interviewer Experience
 - **Role-Based Portal**: Dedicated Interviewer Dashboard (`/interviewer/dashboard`) with earnings, upcoming sessions, and payout breakdowns.
@@ -63,6 +65,40 @@ mockmate/
 ├── package.json          # Root workspace configuration
 └── README.md
 ```
+
+```mermaid
+flowchart LR
+  Browser[Next.js frontend] -->|REST /api/v1| API[Express API]
+  Browser <-->|Socket.IO| API
+  API --> Auth[Better Auth]
+  API --> DB[(PostgreSQL via Prisma)]
+  API --> LK[LiveKit]
+  API --> AI[Groq]
+  API --> RP[Razorpay]
+  RP -->|signed webhook| API
+```
+
+### Backend route inventory
+
+For the backend layer map, middleware responsibilities, database model locations, and a full request walkthrough, see [Backend Structure and Request Flow](docs/BACKEND_GUIDE.md).
+
+The API mounts the following modules under `/api/v1`. Better Auth is mounted separately at `/api/auth/*`; the health check is `/health`.
+
+| Prefix | Responsibility |
+| :--- | :--- |
+| `/auth` | Legacy register, login, and current-user endpoints |
+| `/users` | User profile and avatar operations |
+| `/marketplace` | Interviewer search and profile details |
+| `/availability` | Public and interviewer-managed availability and blackouts |
+| `/bookings` | Booking creation, candidate/interviewer lists, details, and cancellation |
+| `/payments` | Razorpay booking order, verification, and payment status |
+| `/interviews` | Session tokens, details, end, messages, and code snapshots |
+| `/feedback` | Session feedback and interviewer reviews |
+| `/ai` | Feedback polishing and preparation advisor |
+| `/notifications` | Notification listing and read state |
+| `/admin` | Admin analytics, user listing, and moderation |
+
+`POST /api/v1/payments/webhook` is mounted before JSON body parsing so Razorpay's raw body signature can be checked.
 
 ---
 
@@ -113,6 +149,8 @@ DIRECT_URL=postgresql://mockmate:mockmate@localhost:5432/mockmate?schema=public
 
 # Storage mode: "database" for real persistence (recommended),
 # "memory" for offline demo runs without a DB.
+# The selected mode stays fixed for the process. Database mode refuses
+# startup if PostgreSQL is unavailable; it never falls back to demo data.
 STORAGE_MODE=database
 
 # WebRTC & Real-time

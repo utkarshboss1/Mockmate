@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Check, Sparkles, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Check, Sparkles, ArrowRight } from 'lucide-react';
 
 export interface PricingPlan {
   id: string;
@@ -95,13 +94,14 @@ export const PRICING_PLANS: PricingPlan[] = [
   },
 ];
 
-interface PaddlePricingCardProps {
+interface PricingCardProps {
   plan: PricingPlan;
   isAnnual: boolean;
   onSelectPlan: (plan: PricingPlan) => void;
+  disabled?: boolean;
 }
 
-export function PaddlePricingCard({ plan, isAnnual, onSelectPlan }: PaddlePricingCardProps) {
+export function PricingCard({ plan, isAnnual, onSelectPlan, disabled = false }: PricingCardProps) {
   const price = isAnnual ? plan.annualPriceINR : plan.monthlyPriceINR;
 
   return (
@@ -159,7 +159,7 @@ export function PaddlePricingCard({ plan, isAnnual, onSelectPlan }: PaddlePricin
           {/* Features List */}
           <div className="space-y-3 pt-2">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              What's Included:
+              What&apos;s Included:
             </div>
             <ul className="space-y-2.5">
               {plan.features.map((feat, idx) => (
@@ -178,13 +178,14 @@ export function PaddlePricingCard({ plan, isAnnual, onSelectPlan }: PaddlePricin
         <div className="pt-6 mt-6 border-t border-white/[0.06]">
           <Button
             onClick={() => onSelectPlan(plan)}
+            disabled={disabled}
             className={`w-full h-11 text-xs font-bold rounded-xl cursor-pointer transition-all duration-200 ${
               plan.popular
                 ? 'glow-primary bg-primary text-primary-foreground hover:opacity-90'
                 : 'border border-white/[0.12] bg-secondary/80 text-foreground hover:bg-secondary hover:text-foreground'
             }`}
           >
-            {plan.ctaText} <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+            {disabled ? 'Coming soon' : plan.ctaText} {!disabled && <ArrowRight className="h-3.5 w-3.5 ml-1.5" />}
           </Button>
         </div>
       </CardContent>

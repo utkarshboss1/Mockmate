@@ -2,7 +2,8 @@
 // availability.repository.ts — Database Access for Availability
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { UpdateAvailabilityInput } from './availability.validator';
 import { BookingStatus, DayOfWeek } from '@interviewiq/shared';
 
@@ -16,42 +17,29 @@ const SAMPLE_SLOTS = [
 
 export class AvailabilityRepository {
   async getInterviewerProfileId(userId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return 'int_1';
     }
-    try {
-      const profile = await prisma.interviewerProfile.findUnique({
-        where: { userId },
-        select: { id: true },
-      });
-      return profile?.id || null;
-    } catch {
-      return null;
-    }
+    const profile = await prisma.interviewerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return profile?.id || null;
   }
 
   async getSlotsByInterviewerProfileId(interviewerProfileId: string) {
-    if (!isDbConnected()) {
-      return SAMPLE_SLOTS as any;
+    if (isMockStorage()) {
+      return SAMPLE_SLOTS.map((slot) => ({ ...slot, interviewerProfileId })) as any;
     }
-    try {
-      const slots = await prisma.availabilitySlot.findMany({
-        where: { interviewerProfileId },
-        orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
-      });
-
-      if (slots.length === 0) {
-        return SAMPLE_SLOTS as any;
-      }
-      return slots;
-    } catch {
-      return SAMPLE_SLOTS as any;
-    }
+    return prisma.availabilitySlot.findMany({
+      where: { interviewerProfileId },
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+    });
   }
 
   async replaceWeeklySlots(interviewerProfileId: string, input: UpdateAvailabilityInput) {
-    if (!isDbConnected()) {
-      return SAMPLE_SLOTS as any;
+    if (isMockStorage()) {
+      return SAMPLE_SLOTS.map((slot) => ({ ...slot, interviewerProfileId })) as any;
     }
     return prisma.$transaction(async (tx: any) => {
       await tx.availabilitySlot.deleteMany({
@@ -78,43 +66,35 @@ export class AvailabilityRepository {
   }
 
   async getExistingBookingsInRange(interviewerProfileId: string, startDateTime: Date, endDateTime: Date) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return [];
     }
-    try {
-      return await prisma.booking.findMany({
-        where: {
-          interviewerProfileId,
-          scheduledAt: {
-            gte: startDateTime,
-            lte: endDateTime,
-          },
-          status: {
-            notIn: [BookingStatus.CANCELLED_BY_CANDIDATE, BookingStatus.CANCELLED_BY_INTERVIEWER],
-          },
+    return prisma.booking.findMany({
+      where: {
+        interviewerProfileId,
+        scheduledAt: {
+          gte: startDateTime,
+          lte: endDateTime,
         },
-        select: {
-          scheduledAt: true,
-          durationMinutes: true,
+        status: {
+          notIn: [BookingStatus.CANCELLED_BY_CANDIDATE, BookingStatus.CANCELLED_BY_INTERVIEWER],
         },
-      });
-    } catch {
-      return [];
-    }
+      },
+      select: {
+        scheduledAt: true,
+        durationMinutes: true,
+      },
+    });
   }
 
   async getBlockedSlots(interviewerProfileId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return [];
     }
-    try {
-      return await prisma.blockedSlot.findMany({
-        where: { interviewerProfileId },
-        orderBy: { startDateTime: 'asc' },
-      });
-    } catch {
-      return [];
-    }
+    return prisma.blockedSlot.findMany({
+      where: { interviewerProfileId },
+      orderBy: { startDateTime: 'asc' },
+    });
   }
 
   async createBlockedSlot(
@@ -123,7 +103,7 @@ export class AvailabilityRepository {
     endDateTime: Date,
     reason?: string,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id: `blk_${Date.now()}`,
         interviewerProfileId,
@@ -145,7 +125,7 @@ export class AvailabilityRepository {
   }
 
   async deleteBlockedSlot(interviewerProfileId: string, blockedSlotId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { id: blockedSlotId };
     }
     return prisma.blockedSlot.deleteMany({
@@ -157,20 +137,16 @@ export class AvailabilityRepository {
   }
 
   async getBlockedSlotsInRange(interviewerProfileId: string, startDateTime: Date, endDateTime: Date) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return [];
     }
-    try {
-      return await prisma.blockedSlot.findMany({
-        where: {
-          interviewerProfileId,
-          startDateTime: { lte: endDateTime },
-          endDateTime: { gte: startDateTime },
-        },
-      });
-    } catch {
-      return [];
-    }
+    return prisma.blockedSlot.findMany({
+      where: {
+        interviewerProfileId,
+        startDateTime: { lte: endDateTime },
+        endDateTime: { gte: startDateTime },
+      },
+    });
   }
 }
 

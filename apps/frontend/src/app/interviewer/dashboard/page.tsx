@@ -104,11 +104,16 @@ export default function InterviewerDashboardPage() {
               </Badge>
             </div>
             <CardDescription className="text-muted-foreground">
-              Complete these 3 simple steps to activate your profile and start receiving paid candidate bookings.
+              Complete your profile and availability, then an admin will review your listing before candidates can book you.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {profileObj && !profileObj.isVerified && (
+                <div className="md:col-span-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+                  Your profile is pending admin approval. Candidates will see it in the marketplace after it is approved.
+                </div>
+              )}
               {/* Step 1 */}
               <div className="p-4 rounded-xl border border-border/50 bg-card/60 space-y-2 flex flex-col justify-between">
                 <div className="space-y-1">
@@ -259,8 +264,8 @@ export default function InterviewerDashboardPage() {
               </p>
             </div>
             <Button asChild size="sm" variant="outline" className="text-xs gap-1.5">
-              <Link href="/marketplace" target="_blank">
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> Preview Public Marketplace Listing
+              <Link href={profileObj?.id ? `/marketplace/${profileObj.id}` : '/interviewer/profile'} target="_blank">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Preview Your Public Profile
               </Link>
             </Button>
           </Card>

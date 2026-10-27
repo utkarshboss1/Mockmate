@@ -2,13 +2,14 @@
 // payments.repository.ts — Database Access for Payments & Rooms
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
 import { mockBookingStore as bookingStore } from '../../mockStore/bookingStore';
 
 export class PaymentsRepository {
   async getBookingWithCandidateAndInterviewer(bookingId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const stored = bookingStore.findBookingById(bookingId);
       if (stored) {
         return stored as any;
@@ -38,7 +39,7 @@ export class PaymentsRepository {
     razorpayOrderId: string,
     amountPaise: number,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { id: 'pay_1', bookingId, razorpayOrderId, amountPaise, status: PaymentStatus.PENDING } as any;
     }
 
@@ -59,40 +60,8 @@ export class PaymentsRepository {
     });
   }
 
-  async activateUserPass(userId: string, planId: string, creditsToAdd: number, expiresAt: Date) {
-    if (!isDbConnected()) {
-      return {
-        id: userId,
-        activePlan: planId === 'pro' ? 'PRO_PREP' : 'FAANG_ALL_ACCESS',
-        interviewCredits: creditsToAdd,
-        planExpiresAt: expiresAt,
-      } as any;
-    }
-
-    return prisma.user.update({
-      where: { id: userId },
-      data: {
-        activePlan: planId === 'pro' ? 'PRO_PREP' : 'FAANG_ALL_ACCESS',
-        planExpiresAt: expiresAt,
-        interviewCredits: {
-          increment: creditsToAdd,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        status: true,
-        activePlan: true,
-        planExpiresAt: true,
-        interviewCredits: true,
-      },
-    });
-  }
-
   async findPaymentByOrderId(razorpayOrderId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return null;
     }
     return prisma.payment.findUnique({
@@ -115,7 +84,7 @@ export class PaymentsRepository {
     razorpayPaymentId: string,
     amountPaise: number,
   ) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         booking: {
           id: bookingId,
@@ -164,7 +133,7 @@ export class PaymentsRepository {
    * Used when payment.captured arrives without a client-side verify round-trip.
    */
   async confirmPaymentByOrderId(razorpayOrderId: string, razorpayPaymentId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return null;
     }
 
@@ -201,7 +170,7 @@ export class PaymentsRepository {
   }
 
   async markPaymentFailedByOrderId(razorpayOrderId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return null;
     }
     return prisma.payment.update({

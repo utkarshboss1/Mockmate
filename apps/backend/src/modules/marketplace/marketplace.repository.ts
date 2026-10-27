@@ -2,7 +2,8 @@
 // marketplace.repository.ts — Marketplace Database Access
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { MarketplaceQueryInput } from './marketplace.validator';
 
 // Sample mock data returned when database is connecting or unseeded
@@ -21,7 +22,8 @@ const SAMPLE_INTERVIEWERS = [
     user: {
       id: 'u_1',
       name: 'Aarav Sharma',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      avatar:
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
     },
     tags: [
       { tag: { id: 't1', name: 'System Design', slug: 'system-design' } },
@@ -43,7 +45,8 @@ const SAMPLE_INTERVIEWERS = [
     user: {
       id: 'u_2',
       name: 'Priya Patel',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
+      avatar:
+        'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
     },
     tags: [
       { tag: { id: 't4', name: 'Distributed Systems', slug: 'distributed-systems' } },
@@ -65,7 +68,8 @@ const SAMPLE_INTERVIEWERS = [
     user: {
       id: 'u_3',
       name: 'Rohan Verma',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+      avatar:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
     },
     tags: [
       { tag: { id: 't7', name: 'Go', slug: 'go' } },
@@ -77,125 +81,122 @@ const SAMPLE_INTERVIEWERS = [
 
 export class MarketplaceRepository {
   async searchInterviewers(input: MarketplaceQueryInput) {
-    const { search, experienceLevel, tags, minPriceRupees, maxPriceRupees, sort, page, limit, includeUnverified } = input;
+    const {
+      search,
+      experienceLevel,
+      tags,
+      minPriceRupees,
+      maxPriceRupees,
+      sort,
+      page,
+      limit,
+      includeUnverified,
+    } = input;
 
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { total: SAMPLE_INTERVIEWERS.length, items: SAMPLE_INTERVIEWERS as any };
     }
 
-    try {
-      const where: any = {};
+    const where: any = {};
 
-      // Marketplace default: only admin-verified interviewers are listed.
-      if (!includeUnverified) {
-        where.isVerified = true;
-      }
-
-      if (search && search.trim()) {
-        const query = search.trim();
-        where.OR = [
-          { headline: { contains: query, mode: 'insensitive' } },
-          { bio: { contains: query, mode: 'insensitive' } },
-          { company: { contains: query, mode: 'insensitive' } },
-          { jobTitle: { contains: query, mode: 'insensitive' } },
-          { user: { name: { contains: query, mode: 'insensitive' } } },
-        ];
-      }
-
-      if (experienceLevel) {
-        where.experienceLevel = experienceLevel;
-      }
-
-      if (minPriceRupees !== undefined || maxPriceRupees !== undefined) {
-        where.pricePerHour = {};
-        if (minPriceRupees !== undefined) {
-          where.pricePerHour.gte = Math.round(minPriceRupees * 100);
-        }
-        if (maxPriceRupees !== undefined) {
-          where.pricePerHour.lte = Math.round(maxPriceRupees * 100);
-        }
-      }
-
-      if (tags && tags.trim()) {
-        const tagList = tags.split(',').map((t) => t.trim().toLowerCase());
-        where.tags = {
-          some: {
-            tag: {
-              slug: { in: tagList },
-            },
-          },
-        };
-      }
-
-      let orderBy: any = { averageRating: 'desc' };
-
-      switch (sort) {
-        case 'price_asc':
-          orderBy = { pricePerHour: 'asc' };
-          break;
-        case 'price_desc':
-          orderBy = { pricePerHour: 'desc' };
-          break;
-        case 'experience_desc':
-          orderBy = { yearsOfExperience: 'desc' };
-          break;
-        case 'rating_desc':
-        default:
-          orderBy = { averageRating: 'desc' };
-          break;
-      }
-
-      const skip = (page - 1) * limit;
-
-      const [total, items] = await Promise.all([
-        prisma.interviewerProfile.count({ where }),
-        prisma.interviewerProfile.findMany({
-          where,
-          orderBy,
-          skip,
-          take: limit,
-          include: {
-            user: { select: { id: true, name: true, avatar: true } },
-            tags: { include: { tag: true } },
-          },
-        }),
-      ]);
-
-      if (total === 0 && !search && !tags && !experienceLevel) {
-        return { total: SAMPLE_INTERVIEWERS.length, items: SAMPLE_INTERVIEWERS as any };
-      }
-
-      return { total, items };
-    } catch (err) {
-      console.warn('Marketplace query fallback to sample interviewers:', (err as Error).message);
-      return { total: SAMPLE_INTERVIEWERS.length, items: SAMPLE_INTERVIEWERS as any };
+    // Marketplace default: only admin-verified interviewers are listed.
+    if (!includeUnverified) {
+      where.isVerified = true;
     }
+
+    if (search && search.trim()) {
+      const query = search.trim();
+      where.OR = [
+        { headline: { contains: query, mode: 'insensitive' } },
+        { bio: { contains: query, mode: 'insensitive' } },
+        { company: { contains: query, mode: 'insensitive' } },
+        { jobTitle: { contains: query, mode: 'insensitive' } },
+        { user: { name: { contains: query, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (experienceLevel) {
+      where.experienceLevel = experienceLevel;
+    }
+
+    if (minPriceRupees !== undefined || maxPriceRupees !== undefined) {
+      where.pricePerHour = {};
+      if (minPriceRupees !== undefined) {
+        where.pricePerHour.gte = Math.round(minPriceRupees * 100);
+      }
+      if (maxPriceRupees !== undefined) {
+        where.pricePerHour.lte = Math.round(maxPriceRupees * 100);
+      }
+    }
+
+    if (tags && tags.trim()) {
+      const tagList = tags.split(',').map((t) => t.trim().toLowerCase());
+      where.tags = {
+        some: {
+          tag: {
+            slug: { in: tagList },
+          },
+        },
+      };
+    }
+
+    let orderBy: any = { averageRating: 'desc' };
+
+    switch (sort) {
+      case 'price_asc':
+        orderBy = { pricePerHour: 'asc' };
+        break;
+      case 'price_desc':
+        orderBy = { pricePerHour: 'desc' };
+        break;
+      case 'experience_desc':
+        orderBy = { yearsOfExperience: 'desc' };
+        break;
+      case 'rating_desc':
+      default:
+        orderBy = { averageRating: 'desc' };
+        break;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [total, items] = await Promise.all([
+      prisma.interviewerProfile.count({ where }),
+      prisma.interviewerProfile.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          user: { select: { id: true, name: true, avatar: true } },
+          tags: { include: { tag: true } },
+        },
+      }),
+    ]);
+
+    return { total, items };
   }
 
   async getInterviewerById(id: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return SAMPLE_INTERVIEWERS.find((s) => s.id === id) || null;
     }
 
-    try {
-      return await prisma.interviewerProfile.findUnique({
-        where: { id },
-        include: {
-          user: { select: { id: true, name: true, avatar: true, createdAt: true } },
-          tags: { include: { tag: true } },
-          reviews: {
-            take: 10,
-            orderBy: { createdAt: 'desc' },
-            include: {
-              booking: { include: { candidate: { select: { name: true, avatar: true } } } },
-            },
+    return prisma.interviewerProfile.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, avatar: true, createdAt: true } },
+        tags: { include: { tag: true } },
+        reviews: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            booking: { include: { candidate: { select: { name: true, avatar: true } } } },
           },
-          availabilitySlots: { where: { isActive: true } },
         },
-      });
-    } catch {
-      return null;
-    }
+        availabilitySlots: { where: { isActive: true } },
+      },
+    });
   }
 }
 

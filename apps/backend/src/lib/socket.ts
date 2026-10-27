@@ -14,7 +14,8 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { env } from '../config/env';
-import { prisma, isDbConnected } from './prisma';
+import { prisma } from './prisma';
+import { isMockStorage } from '../mockStore/mode';
 import { mockUserStore as userStore } from '../mockStore/userStore';
 
 interface AuthenticatedSocket extends Socket {
@@ -36,7 +37,7 @@ async function resolveIdentity(token: string): Promise<SessionIdentity | null> {
   }
 
   // 2. Prisma session table (same lookup as HTTP requireAuth)
-  if (isDbConnected()) {
+  if (!isMockStorage()) {
     const record = await prisma.session.findUnique({
       where: { token },
       select: { expiresAt: true, user: { select: { id: true, name: true } } },
@@ -53,7 +54,7 @@ async function canAccessInterview(
   interviewId: string,
   userId: string,
 ): Promise<boolean> {
-  if (!isDbConnected()) return true; // dev-only mock mode
+  if (isMockStorage()) return true; // dev-only mock mode
 
   const interview = await prisma.interview.findUnique({
     where: { id: interviewId },
@@ -137,7 +138,7 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
       });
 
       // Fetch latest code snapshot if available
-      if (isDbConnected()) {
+      if (!isMockStorage()) {
         try {
           const snapshot = await prisma.codeSnapshot.findUnique({
             where: { interviewId },
@@ -163,7 +164,7 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
       const senderName = socket.userName ?? 'User';
       const sentAt = new Date().toISOString();
 
-      if (!isDbConnected()) {
+      if (isMockStorage()) {
         const mockMessage = {
           id: `msg_${Date.now()}`,
           interviewId,
@@ -212,7 +213,7 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
       if (!interviewId) return;
       if (!socket.userId) return;
       if (!(await isAuthorizedFor(interviewId))) return;
-      if (!isDbConnected()) return;
+      if (isMockStorage()) return;
       try {
         await prisma.codeSnapshot.upsert({
           where: { interviewId },

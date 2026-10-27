@@ -25,15 +25,6 @@ export class PaymentsController {
     }
   }
 
-  async purchasePass(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await paymentsService.purchasePass(req.user!.id, req.body);
-      res.json(successResponse(result, 'Subscription pass activated successfully'));
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async getStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const status = await paymentsService.getPaymentStatus(

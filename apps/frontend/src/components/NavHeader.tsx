@@ -63,7 +63,7 @@ export function NavHeader({ showMarketplaceLink = true }: NavHeaderProps) {
 
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-6 text-xs font-medium tracking-wide">
-            {showMarketplaceLink && (
+            {showMarketplaceLink && user?.role !== 'INTERVIEWER' && (
               <Link
                 href="/marketplace"
                 className={`transition-colors duration-200 cursor-pointer ${
@@ -76,7 +76,7 @@ export function NavHeader({ showMarketplaceLink = true }: NavHeaderProps) {
               </Link>
             )}
 
-            <Link
+            {user?.role !== 'INTERVIEWER' && <Link
               href="/pricing"
               className={`transition-colors duration-200 cursor-pointer ${
                 isActive('/pricing')
@@ -85,7 +85,7 @@ export function NavHeader({ showMarketplaceLink = true }: NavHeaderProps) {
               }`}
             >
               Pricing
-            </Link>
+            </Link>}
 
             {user?.role === 'INTERVIEWER' && (
               <>
@@ -276,21 +276,21 @@ export function NavHeader({ showMarketplaceLink = true }: NavHeaderProps) {
           )}
 
           <div className="flex flex-col gap-3 text-sm font-medium">
-            <Link
+            {user?.role !== 'INTERVIEWER' && <Link
               href="/marketplace"
               onClick={() => setMobileMenuOpen(false)}
               className="py-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
             >
               Browse Interviewers
-            </Link>
+            </Link>}
 
-            <Link
+            {user?.role !== 'INTERVIEWER' && <Link
               href="/pricing"
               onClick={() => setMobileMenuOpen(false)}
               className="py-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
             >
               Pricing & Plans
-            </Link>
+            </Link>}
 
             {user?.role === 'INTERVIEWER' && (
               <>

@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { UserRole, ExperienceLevel, UserStatus } from '@interviewiq/shared';
+import { UserRole, ExperienceLevel, UserStatus, DayOfWeek } from '@interviewiq/shared';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const prisma = new PrismaClient();
 
@@ -33,6 +37,7 @@ async function seed() {
         },
       },
     },
+    include: { interviewerProfile: true },
   });
 
   const _interviewerUser2 = await prisma.user.upsert({
@@ -61,7 +66,41 @@ async function seed() {
         },
       },
     },
+    include: { interviewerProfile: true },
   });
+
+  // Add bookable weekly hours to the demo interviewers when their profile has
+  // no schedule yet. Keep existing interviewer-managed availability intact.
+  const sampleWeekdays = [
+    DayOfWeek.MONDAY,
+    DayOfWeek.TUESDAY,
+    DayOfWeek.WEDNESDAY,
+    DayOfWeek.THURSDAY,
+    DayOfWeek.FRIDAY,
+  ];
+
+  for (const profile of [
+    _interviewerUser1.interviewerProfile,
+    _interviewerUser2.interviewerProfile,
+  ]) {
+    if (!profile) continue;
+
+    const existingSlots = await prisma.availabilitySlot.count({
+      where: { interviewerProfileId: profile.id },
+    });
+
+    if (existingSlots === 0) {
+      await prisma.availabilitySlot.createMany({
+        data: sampleWeekdays.map((dayOfWeek) => ({
+          interviewerProfileId: profile.id,
+          dayOfWeek,
+          startTime: '09:00',
+          endTime: '17:00',
+          isActive: true,
+        })),
+      });
+    }
+  }
 
   // 2. Create Candidate User
     const _candidateUser = await prisma.user.upsert({

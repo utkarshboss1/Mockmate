@@ -1,10 +1,9 @@
 // ============================================================
-// mockStore/index.ts — In-Memory Store (DB-offline Dev Mode)
+// mockStore/index.ts — In-Memory Store (Explicit Demo Mode)
 //
 // PURPOSE
-//   Lets the backend boot and serve end-to-end without a reachable
-//   Postgres. Used while the team is on a college IPv4 LAN where
-//   Supabase (and other paid IPv4 providers) are unreachable.
+//   Serves demo data when STORAGE_MODE=memory is explicitly selected.
+//   PostgreSQL connectivity never changes the selected mode.
 //
 // WHEN TO USE
 //   - STORAGE_MODE=memory   → every read/write hits these Maps

@@ -7,14 +7,14 @@ import { authRepository, AuthRepository } from './auth.repository';
 import { RegisterInput, LoginInput } from './auth.validator';
 import { errors } from '../../middleware/error.middleware';
 import { UserRole, UserStatus } from '@interviewiq/shared';
-import { isDbConnected } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { mockUserStore as userStore } from '../../mockStore/userStore';
 
 export class AuthService {
   constructor(private repository: AuthRepository) {}
 
   async register(input: RegisterInput, headers: Headers) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const existing = userStore.findUserByEmail(input.email);
       if (existing) {
         throw errors.conflict('An account with this email already exists');
@@ -95,7 +95,7 @@ export class AuthService {
   }
 
   async login(input: LoginInput, headers: Headers) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       let existingUser = userStore.findUserByEmail(input.email);
 
       if (!existingUser) {
@@ -172,7 +172,7 @@ export class AuthService {
   }
 
   async getCurrentUser(userId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       let role = UserRole.CANDIDATE;
       if (userId.includes('interviewer')) {
         role = UserRole.INTERVIEWER;

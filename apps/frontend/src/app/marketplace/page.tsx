@@ -9,8 +9,9 @@ import { InterviewerCard } from '@/features/marketplace/components/InterviewerCa
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExperienceLevel } from '@interviewiq/shared';
-import { NavHeader } from '@/components/NavHeader';
 import { Sparkles, ChevronLeft, ChevronRight, SearchX } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 
 interface InterviewerSummary {
   id: string;
@@ -38,6 +39,8 @@ interface MarketplaceResponse {
 }
 
 export default function MarketplacePage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
 
@@ -46,10 +49,21 @@ export default function MarketplacePage() {
   const [maxPrice, setMaxPrice] = useState<number | undefined>();
   const [sort, setSort] = useState('rating_desc');
   const [page, setPage] = useState(1);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const [data, setData] = useState<MarketplaceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && user?.role === 'INTERVIEWER') router.replace('/interviewer/dashboard');
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
+    const refresh = () => setRefreshToken((current) => current + 1);
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -86,7 +100,7 @@ export default function MarketplacePage() {
     fetchInterviewers();
 
     return () => controller.abort();
-  }, [debouncedSearch, experienceLevel, minPrice, maxPrice, sort, page]);
+  }, [debouncedSearch, experienceLevel, minPrice, maxPrice, sort, page, refreshToken]);
 
   const goToPage = (newPage: number | ((p: number) => number)) => {
     setPage(newPage);
@@ -101,6 +115,8 @@ export default function MarketplacePage() {
     setSort('rating_desc');
     setPage(1);
   };
+
+  if (authLoading || user?.role === 'INTERVIEWER') return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

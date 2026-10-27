@@ -1,24 +1,16 @@
 // ============================================================
 // prisma.ts — Prisma Client Singleton + Connection Probe
 //
-// The Prisma client is always instantiated so that imports
-// don't need to be conditional. Whether requests actually use
-// it is decided by `isMockStorage()` in the mockStore layer
-// and by `checkDbConnection()` here.
-//
-// If the connection check fails at boot, the app keeps running
-// in memory mode (intentional dev behaviour for the college-LAN
-// setup). In production, the env validator rejects STORAGE_MODE=
-// "memory" before this file is ever loaded.
+// The Prisma client is always instantiated so imports don't need
+// to be conditional. Repository selection is controlled only by
+// STORAGE_MODE in mockStore/mode; connection checks never switch
+// the app to sample data.
 // ============================================================
 
 import { PrismaClient } from '@prisma/client';
 import { env } from '../config/env';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-  isDbConnected: boolean | undefined;
-};
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 export const prisma =
   globalForPrisma.prisma ??
@@ -30,36 +22,23 @@ if (env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-export function setIsDbConnected(status: boolean) {
-  globalForPrisma.isDbConnected = status;
-}
-
-export function isDbConnected(): boolean {
-  return globalForPrisma.isDbConnected ?? false;
-}
-
 /**
- * Actively pings the database and refreshes the connection flag.
- * The flag must reflect reality — a transient startup failure should not
- * permanently pin the app in mock mode, and an outage later on should be
- * detected instead of serving stale "connected" state.
+ * Checks database availability during startup. Repositories use the
+ * configured storage mode and do not fall back when this check fails later.
  */
 export async function checkDbConnection(maxRetries = 3): Promise<boolean> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await prisma.$connect();
       await prisma.$queryRaw`SELECT 1`;
-      setIsDbConnected(true);
       return true;
-    } catch (err) {
+    } catch {
       if (attempt < maxRetries) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         continue;
       }
-      setIsDbConnected(false);
       return false;
     }
   }
-  setIsDbConnected(false);
   return false;
 }

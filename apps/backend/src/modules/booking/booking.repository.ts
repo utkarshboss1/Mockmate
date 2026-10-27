@@ -2,7 +2,8 @@
 // booking.repository.ts — Database Access for Bookings
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { CreateBookingInput, GetBookingsQueryInput } from './booking.validator';
 import { BookingStatus, PaymentStatus, InterviewStatus } from '@interviewiq/shared';
 import { Prisma } from '@prisma/client';
@@ -46,7 +47,7 @@ const SLOT_BLOCKING_STATUSES = [
 
 export class BookingRepository {
   async getInterviewerProfileById(id: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return {
         id,
         pricePerHour: 150000,
@@ -62,7 +63,7 @@ export class BookingRepository {
   }
 
   async getInterviewerProfileByUserId(userId: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       return { id: 'int_1', userId };
     }
     return prisma.interviewerProfile.findUnique({
@@ -86,7 +87,7 @@ export class BookingRepository {
     const isCreditBooking = Boolean(options?.useCredit);
     const initialStatus = isCreditBooking ? BookingStatus.CONFIRMED : BookingStatus.PENDING;
 
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const user = userStore.findUserById(candidateId);
       const stored = bookingStore.saveBooking({
         id: `b_${Date.now()}`,
@@ -210,7 +211,7 @@ export class BookingRepository {
   }
 
   async getCandidateBookings(candidateId: string, query: GetBookingsQueryInput) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const userBookings = bookingStore.findBookingsByCandidate(candidateId);
       if (userBookings.length > 0) {
         return { total: userBookings.length, items: userBookings as any };
@@ -266,7 +267,7 @@ export class BookingRepository {
   }
 
   async getInterviewerBookings(interviewerProfileId: string, query: GetBookingsQueryInput) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const interviewerBookings = bookingStore.findBookingsByInterviewer(interviewerProfileId);
       if (interviewerBookings.length > 0) {
         return { total: interviewerBookings.length, items: interviewerBookings as any };
@@ -303,7 +304,7 @@ export class BookingRepository {
   }
 
   async getBookingById(id: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const stored = bookingStore.findBookingById(id);
       if (stored) return stored as any;
       return SAMPLE_BOOKINGS.find((b) => b.id === id) as any || null;
@@ -327,7 +328,7 @@ export class BookingRepository {
   }
 
   async updateBookingStatus(id: string, status: BookingStatus, notes?: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       const updated = bookingStore.updateBookingStatus(id, status, notes);
       if (updated) {
         return updated as any;

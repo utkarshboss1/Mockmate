@@ -1,68 +1,53 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   PRICING_PLANS,
-  PaddlePricingCard,
+  PricingCard,
   type PricingPlan,
-} from '@/features/billing/components/PaddlePricingCard';
-import { PaddleCheckoutModal } from '@/features/billing/components/PaddleCheckoutModal';
-import { Button } from '@/components/ui/button';
+} from '@/features/billing/components/PricingCard';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import {
   Sparkles,
   Check,
   Minus,
-  HelpCircle,
-  ShieldCheck,
-  CreditCard,
-  Zap,
-  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 
 export default function PricingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && user?.role === 'INTERVIEWER') router.replace('/interviewer/dashboard');
+  }, [isLoading, user, router]);
+
+  if (isLoading || user?.role === 'INTERVIEWER') return null;
 
   const handleSelectPlan = (plan: PricingPlan) => {
     if (plan.id === 'starter') {
       router.push('/marketplace');
       return;
     }
-    if (!user) {
-      toast.info('Please sign in to select this plan.');
-      router.push('/login?redirect=/pricing');
-      return;
-    }
-    setSelectedPlan(plan);
-    setCheckoutOpen(true);
-  };
-
-  const handleCheckoutSuccess = (planId: string) => {
-    toast.success('Subscription activated! Mock interview credits have been added.');
-    router.push('/dashboard');
+    toast.info('Subscription checkout is not available yet.');
   };
 
   const faqs = [
     {
       q: 'How do mock interview session credits work?',
-      a: 'When you subscribe to Pro Prep or FAANG All-Access, your session credits are immediately unlocked. You can use them to book any verified interviewer on the marketplace without paying individual session fees.',
+      a: 'Subscription plans are shown for reference. Subscription checkout is not available yet. You can currently book and pay for individual sessions through the marketplace.',
     },
     {
-      q: 'What payment methods does Paddle support?',
-      a: 'Through Paddle, we support all major Credit/Debit Cards (Visa, Mastercard, Amex), UPI, NetBanking, Apple Pay, Google Pay, and PayPal with automated multi-currency conversion.',
+      q: 'How can I pay for an interview?',
+      a: 'Individual interview bookings use Razorpay checkout. Subscription checkout is not available yet.',
     },
     {
       q: 'Can I cancel or pause my subscription anytime?',
-      a: 'Yes, absolutely. You can cancel with one click from your billing settings. You will retain full access to all remaining session credits until the end of your billing cycle.',
+      a: 'Subscription management is not available because subscription checkout is not available yet.',
     },
     {
       q: 'What happens if my interviewer does not show up?',
@@ -75,7 +60,7 @@ export default function PricingPage() {
       {/* ─── Hero Header ────────────────────────────────────────── */}
       <section className="py-20 md:py-28 px-4 text-center space-y-6 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/10 text-primary text-xs font-semibold">
-          <Sparkles className="h-3.5 w-3.5" /> Paddle Billing Powered Subscriptions
+          <Sparkles className="h-3.5 w-3.5" /> Subscription plans
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight font-heading leading-tight">
@@ -83,7 +68,7 @@ export default function PricingPage() {
         </h1>
 
         <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-          Transparent, all-inclusive mock interview plans with verified senior engineers, actionable AI scorecards, and guaranteed feedback.
+          Subscription checkout is not available yet. You can book and pay for individual sessions through the marketplace.
         </p>
 
         {/* Billing Cycle Toggle */}
@@ -127,11 +112,12 @@ export default function PricingPage() {
       <section className="container max-w-6xl px-4 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
           {PRICING_PLANS.map((plan) => (
-            <PaddlePricingCard
+            <PricingCard
               key={plan.id}
               plan={plan}
               isAnnual={isAnnual}
               onSelectPlan={handleSelectPlan}
+              disabled={plan.id !== 'starter'}
             />
           ))}
         </div>
@@ -217,14 +203,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Checkout Modal */}
-      <PaddleCheckoutModal
-        plan={selectedPlan}
-        isAnnual={isAnnual}
-        isOpen={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        onSuccess={handleCheckoutSuccess}
-      />
     </div>
   );
 }

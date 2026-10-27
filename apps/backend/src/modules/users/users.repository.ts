@@ -2,12 +2,13 @@
 // users.repository.ts — Users & Profiles DB Operations
 // ============================================================
 
-import { prisma, isDbConnected } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma';
+import { isMockStorage } from '../../mockStore/mode';
 import { UpdateCandidateProfileInput, UpdateInterviewerProfileInput } from './users.validator';
 
 export class UsersRepository {
   async getUserById(id: string) {
-    if (!isDbConnected()) {
+    if (isMockStorage()) {
       let role = 'CANDIDATE';
       if (id.includes('interviewer')) role = 'INTERVIEWER';
       else if (id.includes('admin')) role = 'ADMIN';
