@@ -1,10 +1,4 @@
-// ============================================================
-// mockStore/bookingStore.ts — In-Memory Booking Registry
-//
-// TODO(college-LAN): Switch all booking flows back to Prisma
-// once DATABASE_URL is reachable. Then delete this file and the
-// memory branches in booking.repository.ts and payments.repository.ts.
-// ============================================================
+// In-memory booking storage for memory mode.
 
 export interface MockStoredBooking {
   id: string;

@@ -1,10 +1,4 @@
-// ============================================================
-// mockStore/userStore.ts — In-Memory User & Session Registry
-//
-// TODO(college-LAN): Switch all auth flows back to Prisma +
-// Better Auth once DATABASE_URL is reachable. Then delete this
-// entire file and the memory branch in auth.service.ts.
-// ============================================================
+// In-memory user and session storage for memory mode.
 
 import { UserRole, UserStatus } from '@interviewiq/shared';
 
