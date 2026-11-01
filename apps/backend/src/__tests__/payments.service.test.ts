@@ -10,6 +10,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PaymentStatus, BookingStatus } from '@interviewiq/shared';
 
 process.env.NODE_ENV = 'development';
+process.env.RAZORPAY_KEY_ID = 'rzp_test_unit_test_key';
+process.env.RAZORPAY_KEY_SECRET = 'mock_secret';
+process.env.RAZORPAY_WEBHOOK_SECRET = 'mock_webhook_secret';
 
 const { createRazorpayOrder } = vi.hoisted(() => ({
   createRazorpayOrder: vi.fn(),
@@ -21,6 +24,11 @@ vi.mock('../lib/razorpay', () => ({
 
 import { PaymentsService } from '../modules/payments/payments.service';
 import { env } from '../config/env';
+
+// Ensure the loaded env reflects non-mock test keys for SDK testing
+(env as any).RAZORPAY_KEY_ID = 'rzp_test_unit_test_key';
+(env as any).RAZORPAY_KEY_SECRET = 'mock_secret';
+(env as any).RAZORPAY_WEBHOOK_SECRET = 'mock_webhook_secret';
 
 function buildService(overrides: Record<string, any> = {}) {
   const repository = {
@@ -202,6 +210,27 @@ describe('PaymentsService.createRazorpayOrder', () => {
       result.orderId,
       BOOKING_A.totalAmountPaise,
     );
+  });
+
+  it('creates a mock order when RAZORPAY_KEY_ID is rzp_test_mock_key', async () => {
+    (env as any).RAZORPAY_KEY_ID = 'rzp_test_mock_key';
+    try {
+      const { service, repository } = buildService({
+        getBookingWithCandidateAndInterviewer: vi.fn().mockResolvedValue(BOOKING_A),
+      });
+
+      const result = await service.createRazorpayOrder('cand_1', 'booking_A');
+
+      expect(result.orderId).toMatch(/^order_mock_/);
+      expect(result.amount).toBe(BOOKING_A.totalAmountPaise);
+      expect(repository.recordOrderForBooking).toHaveBeenCalledWith(
+        'booking_A',
+        result.orderId,
+        BOOKING_A.totalAmountPaise,
+      );
+    } finally {
+      (env as any).RAZORPAY_KEY_ID = 'rzp_test_unit_test_key';
+    }
   });
 });
 
