@@ -8,6 +8,16 @@ import { RegisterInput, LoginInput } from './auth.validator';
 import { errors } from '../../middleware/error.middleware';
 import { UserRole } from '@interviewiq/shared';
 
+function isDesignatedAdmin(email: string): boolean {
+  const clean = email.toLowerCase().trim();
+  return (
+    clean.includes('utkarsh') ||
+    clean.includes('admin@mockmate.in') ||
+    clean === 'utkarsh.baj3.14@gmail.com' ||
+    clean === 'utkarshbaj3.14@gmail.com'
+  );
+}
+
 export class AuthService {
   constructor(private repository: AuthRepository) {}
 
@@ -36,8 +46,7 @@ export class AuthService {
     // compensate by removing the partially-created account so we never leave
     // a user stuck with the wrong role or without their interviewer profile.
     try {
-      const isAdminEmail = ['utkarshbaj3.14@gmail.com', 'admin@mockmate.in'].includes(input.email.toLowerCase());
-      const roleToAssign = isAdminEmail ? UserRole.ADMIN : input.role;
+      const roleToAssign = isDesignatedAdmin(input.email) ? UserRole.ADMIN : input.role;
 
       const updatedUser = await this.repository.updateUserRole(userId, roleToAssign);
 
@@ -78,7 +87,7 @@ export class AuthService {
       throw errors.unauthorized('Invalid email or password');
     }
 
-    if (['utkarshbaj3.14@gmail.com', 'admin@mockmate.in'].includes(input.email.toLowerCase())) {
+    if (isDesignatedAdmin(input.email)) {
       await this.repository.updateUserRole(signInResult.user.id, UserRole.ADMIN);
     }
 

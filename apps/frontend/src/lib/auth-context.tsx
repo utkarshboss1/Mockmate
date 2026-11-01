@@ -38,18 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUser(parsed.user);
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    setIsLoading(false);
+  const updateUser = useCallback((partial: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        const token = stored ? JSON.parse(stored).token : localStorage.getItem('access_token');
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: updated, token }));
+      } catch {}
+      return updated;
+    });
   }, []);
 
   const login = useCallback((user: AuthUser, token: string) => {
@@ -66,22 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }, []);
 
-  const updateUser = useCallback((partial: Partial<AuthUser>) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const updated = { ...prev, ...partial };
-      try {
-        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-        const token = stored ? JSON.parse(stored).token : localStorage.getItem('access_token');
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user: updated, token }));
-      } catch {}
-      return updated;
-    });
-  }, []);
-
   const refreshUser = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
       if (!token) return;
       const { api } = await import('@/lib/api');
       const res = await api.get('/users/me');
@@ -90,6 +76,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch {}
   }, [updateUser]);
+
+  // Hydrate from localStorage on mount and sync with backend
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUser(parsed.user);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    setIsLoading(false);
+
+    // Sync latest user profile & role from backend
+    refreshUser();
+  }, [refreshUser]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, refreshUser }}>

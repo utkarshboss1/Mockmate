@@ -25,14 +25,28 @@ async function bootstrap() {
 
   // Ensure default admin users are elevated
   try {
-    const adminEmails = ['utkarshbaj3.14@gmail.com', 'admin@mockmate.in'];
+    const adminEmails = [
+      'utkarsh.baj3.14@gmail.com',
+      'utkarshbaj3.14@gmail.com',
+      'utkarshbaj314@gmail.com',
+      'admin@mockmate.in',
+    ];
     const updated = await prisma.user.updateMany({
-      where: { email: { in: adminEmails, mode: 'insensitive' } },
+      where: {
+        OR: [
+          { email: { in: adminEmails, mode: 'insensitive' } },
+          { email: { contains: 'utkarsh', mode: 'insensitive' } },
+        ],
+      },
       data: { role: UserRole.ADMIN },
     });
-    if (updated.count > 0) {
-      console.log(`Elevated ${updated.count} admin user(s) successfully.`);
-    }
+    console.log(`Elevated ${updated.count} admin user(s) successfully.`);
+
+    const elevatedUsers = await prisma.user.findMany({
+      where: { role: UserRole.ADMIN },
+      select: { id: true, email: true, role: true },
+    });
+    console.log('Confirmed Admins in DB:', JSON.stringify(elevatedUsers));
   } catch (err) {
     console.error('Failed to elevate default admin users:', err);
   }
