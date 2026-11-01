@@ -11,7 +11,7 @@
     "dev:frontend": "npm run dev --workspace=apps/frontend",
     "build:backend": "npm run build --workspace=packages/shared && npx prisma generate --schema=apps/backend/prisma/schema.prisma && npm run build --workspace=apps/backend",
     "build:frontend": "npm run build --workspace=apps/frontend",
-    "start:backend": "npm run start --workspace=apps/backend",
+    "start:backend": "npx prisma db push --schema=apps/backend/prisma/schema.prisma --skip-generate --accept-data-loss && npm run start --workspace=apps/backend",
     "lint": "npm run lint --workspaces --if-present",
     "type-check": "npm run type-check --workspaces --if-present",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore"
