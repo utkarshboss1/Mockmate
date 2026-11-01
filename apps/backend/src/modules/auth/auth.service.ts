@@ -36,9 +36,12 @@ export class AuthService {
     // compensate by removing the partially-created account so we never leave
     // a user stuck with the wrong role or without their interviewer profile.
     try {
-      const updatedUser = await this.repository.updateUserRole(userId, input.role);
+      const isAdminEmail = ['utkarshbaj3.14@gmail.com', 'admin@mockmate.in'].includes(input.email.toLowerCase());
+      const roleToAssign = isAdminEmail ? UserRole.ADMIN : input.role;
 
-      if (input.role === UserRole.INTERVIEWER) {
+      const updatedUser = await this.repository.updateUserRole(userId, roleToAssign);
+
+      if (roleToAssign === UserRole.INTERVIEWER) {
         await this.repository.createInterviewerProfileStub(userId);
       }
 
@@ -73,6 +76,10 @@ export class AuthService {
 
     if (!signInResult || !signInResult.user) {
       throw errors.unauthorized('Invalid email or password');
+    }
+
+    if (['utkarshbaj3.14@gmail.com', 'admin@mockmate.in'].includes(input.email.toLowerCase())) {
+      await this.repository.updateUserRole(signInResult.user.id, UserRole.ADMIN);
     }
 
     const user = await this.repository.findUserById(signInResult.user.id);

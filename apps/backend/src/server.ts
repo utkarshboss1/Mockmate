@@ -6,6 +6,7 @@ import dns from 'node:dns';
 dns.setDefaultResultOrder('verbatim');
 
 import http from 'http';
+import { UserRole } from '@interviewiq/shared';
 import { createApp } from './app';
 import { env } from './config/env';
 import { prisma, checkDbConnection } from './lib/prisma';
@@ -21,6 +22,20 @@ async function bootstrap() {
   }
 
   console.log('PostgreSQL connected successfully.');
+
+  // Ensure default admin users are elevated
+  try {
+    const adminEmails = ['utkarshbaj3.14@gmail.com', 'admin@mockmate.in'];
+    const updated = await prisma.user.updateMany({
+      where: { email: { in: adminEmails, mode: 'insensitive' } },
+      data: { role: UserRole.ADMIN },
+    });
+    if (updated.count > 0) {
+      console.log(`Elevated ${updated.count} admin user(s) successfully.`);
+    }
+  } catch (err) {
+    console.error('Failed to elevate default admin users:', err);
+  }
 
   // 2. Create Express app
   const app = createApp();
