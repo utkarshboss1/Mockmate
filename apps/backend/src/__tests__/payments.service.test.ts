@@ -11,11 +11,16 @@ import { PaymentStatus, BookingStatus } from '@interviewiq/shared';
 
 process.env.NODE_ENV = 'development';
 
+const { createRazorpayOrder } = vi.hoisted(() => ({
+  createRazorpayOrder: vi.fn(),
+}));
+
+vi.mock('../lib/razorpay', () => ({
+  razorpay: { orders: { create: createRazorpayOrder } },
+}));
+
 import { PaymentsService } from '../modules/payments/payments.service';
 import { env } from '../config/env';
-
-/** True when the test run resolved to mock razorpay keys (offline dev). */
-const IS_MOCK_RAZORPAY = env.RAZORPAY_KEY_ID === 'rzp_test_mock_key';
 
 function buildService(overrides: Record<string, any> = {}) {
   const repository = {
@@ -129,6 +134,14 @@ describe('PaymentsService.verifyRazorpayPayment', () => {
 });
 
 describe('PaymentsService.createRazorpayOrder', () => {
+  beforeEach(() => {
+    createRazorpayOrder.mockResolvedValue({
+      id: 'order_test_1',
+      amount: BOOKING_A.totalAmountPaise,
+      currency: 'INR',
+    });
+  });
+
   it('refuses to create an order when the booking amount is missing', async () => {
     const { service, repository } = buildService({
       getBookingWithCandidateAndInterviewer: vi.fn().mockResolvedValue({
@@ -176,10 +189,14 @@ describe('PaymentsService.createRazorpayOrder', () => {
 
     const result = await service.createRazorpayOrder('cand_1', 'booking_A');
 
-    if (IS_MOCK_RAZORPAY) {
-      expect(result.orderId).toMatch(/^order_mock_/);
-    }
+    expect(result.orderId).toBe('order_test_1');
     expect(result.amount).toBe(BOOKING_A.totalAmountPaise);
+    expect(createRazorpayOrder).toHaveBeenCalledWith({
+      amount: BOOKING_A.totalAmountPaise,
+      currency: 'INR',
+      receipt: 'receipt_booking_A',
+      notes: { bookingId: 'booking_A', candidateId: 'cand_1' },
+    });
     expect(repository.recordOrderForBooking).toHaveBeenCalledWith(
       'booking_A',
       result.orderId,
