@@ -65,6 +65,19 @@ export function errorMiddleware(
     return;
   }
 
+  // Better Auth or standard HTTP errors with statusCode
+  if (err && typeof err === 'object' && 'statusCode' in err && typeof (err as any).statusCode === 'number') {
+    const httpErr = err as any;
+    res.status(httpErr.statusCode).json({
+      success: false,
+      error: {
+        code: httpErr.body?.code || httpErr.status || 'ERROR',
+        message: httpErr.body?.message || httpErr.message || 'Request failed',
+      },
+    });
+    return;
+  }
+
   // Prisma unique constraint violations
   if (err && typeof err === 'object' && 'code' in err) {
     const prismaErr = err as any;
