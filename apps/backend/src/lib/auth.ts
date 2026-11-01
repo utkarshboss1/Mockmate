@@ -26,5 +26,11 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24,     // Update session in DB once per day
   },
-  trustedOrigins: [env.FRONTEND_URL],
+  trustedOrigins: [
+    env.FRONTEND_URL,
+    'http://localhost:3000',
+    'https://mocmate.vercel.app',
+    'https://mockmate-app.vercel.app',
+    'https://mockmate-gamma-gray.vercel.app',
+  ].filter(Boolean),
 });

@@ -38,9 +38,26 @@ export function createApp() {
     }),
   );
 
+  const allowedOrigins = [
+    env.FRONTEND_URL,
+    'http://localhost:3000',
+    'https://mocmate.vercel.app',
+    'https://mockmate-app.vercel.app',
+    'https://mockmate-gamma-gray.vercel.app',
+  ].filter(Boolean);
+
   app.use(
     cors({
-      origin: env.FRONTEND_URL,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+          allowedOrigins.includes(origin) ||
+          origin.endsWith('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],

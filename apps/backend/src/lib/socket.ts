@@ -65,7 +65,13 @@ async function canAccessInterview(
 export function initSocketServer(httpServer: HttpServer): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: env.FRONTEND_URL,
+      origin: [
+        env.FRONTEND_URL,
+        'http://localhost:3000',
+        'https://mocmate.vercel.app',
+        'https://mockmate-app.vercel.app',
+        'https://mockmate-gamma-gray.vercel.app',
+      ].filter(Boolean),
       credentials: true,
       methods: ['GET', 'POST'],
     },
